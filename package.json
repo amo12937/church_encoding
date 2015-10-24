@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "haml": "gulp haml",
     "scripts": "gulp scripts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
