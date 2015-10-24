@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "env NODE_PATH=./src/scripts/ gulp build",
     "haml": "gulp haml",
-    "scripts": "gulp scripts",
+    "scripts": "env NODE_PATH=./src/scripts/ gulp scripts",
+    "tree": "gulp -T",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -13,8 +15,9 @@
   "devDependencies": {
     "coffee-script": "^1.10.0",
     "coffeeify": "^1.1.0",
-    "gulp": "^3.9.0",
+    "gulp": "git://github.com/gulpjs/gulp.git#4.0",
     "gulp-browserify": "^0.5.1",
+    "gulp-clean": "^0.3.1",
     "gulp-rename": "^1.2.2"
   }
 }

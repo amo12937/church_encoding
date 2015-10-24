@@ -2,6 +2,12 @@
 
 gulp = require "gulp"
 
+do (clean = require "gulp-clean") ->
+  gulp.task "clean", ->
+    gulp.src "dist/**/*"
+      .pipe clean()
+
+
 do (browserify = require "gulp-browserify", rename = require "gulp-rename") ->
   gulp.task "scripts", ->
     gulp.src "src/scripts/app.coffee", read: false
@@ -14,3 +20,5 @@ do (haml = require "gulp-haml") ->
     gulp.src "src/index.haml"
       .pipe haml()
       .pipe gulp.dest "dist/"
+
+gulp.task "build", gulp.series "clean", gulp.parallel "scripts", "haml"
