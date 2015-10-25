@@ -17,9 +17,9 @@ module.exports = do ->
     "LAMBDA_BODY"
     "BRACKETS_OPEN"
     "BRACKETS_CLOSE"
-    "DEF_CLOSE"
-    "DEF"
-    "ID"
+    "DEF_OP"
+    "IDENTIFIER"
+    "INDENT"
     ERROR: {
       "STRING"
       "UNKNOWN_TOKEN"
@@ -27,7 +27,6 @@ module.exports = do ->
   }
 
   addToken = (context, value, name) ->
-    console.log "addToken"
     context.tokens.push
       value: value
       name: name
@@ -38,14 +37,12 @@ module.exports = do ->
     return context
 
   addError = (context) ->
-    console.log "addError"
     matched = context.target.match /^\S+/
     return unless matched?
     addToken context, matched[0], TOKEN.ERROR.UNKNOWN_TOKEN
 
   trim = (context) ->
-    console.log "trim"
-    matched = context.target.match /^\s+/
+    matched = context.target.match /^ +/
     return unless matched?
     context.position += matched[0].length
     context.target = context.target.slice matched[0].length
@@ -71,21 +68,24 @@ module.exports = do ->
     ".": TOKEN.LAMBDA_BODY
     "(": TOKEN.BRACKETS_OPEN
     ")": TOKEN.BRACKETS_CLOSE
-    ";": TOKEN.DEF_CLOSE
 
   scanRegexToken = do ->
     tokenRegex = {}
-    tokenRegex[TOKEN.DEF] = /^:=/
-    tokenRegex[TOKEN.ID] = /^([a-zA-Z0-9]+|[~!@#$%^&*\-_+/?|]+)/
+    tokenRegex[TOKEN.DEF_OP] = /^:=/
+    tokenRegex[TOKEN.IDENTIFIER] = /^([a-zA-Z0-9]+|[~!@#$%^&*\-_+/?|]+)/
 
     return (context) ->
-      console.log "scanRegex"
       for name, reg of tokenRegex
         matched = context.target.match reg
         continue unless matched?
         addToken context, matched[0], name
         return true
       return false
+  
+  scanIndentToken = (context) ->
+    matched = context.target.match /^ +/
+    return unless matched?
+    addToken context, matched[0], TOKEN.INDENT
 
   return (sentence) ->
     context =
@@ -96,10 +96,12 @@ module.exports = do ->
       context.line = line
       context.position = 0
 
+      # インデント
+      scanIndentToken context
+
       while context.target.length > 0
         # ホワイトスペースの除去
         trim context
-        console.log context.target, context.target.length
 
         c = context.target[0]
 
