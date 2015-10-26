@@ -1,35 +1,13 @@
 "use strict"
 
 module.exports = do ->
-  genPrefixedKV = (prefix, kv) ->
-    res = {}
-    for k, v of kv
-      if Object.prototype.toString.call(v)[8...-1] is "Object"
-        res[k] = genPrefixedKV "#{prefix}_#{k}", v
-      else
-        res[k] = "#{prefix}_#{v}"
-    return res
-        
-  TOKEN = genPrefixedKV "TOKEN", {
-    "COMMENT"
-    "STRING"
-    "LAMBDA"
-    "LAMBDA_BODY"
-    "BRACKETS_OPEN"
-    "BRACKETS_CLOSE"
-    "DEF_OP"
-    "IDENTIFIER"
-    "INDENT"
-    ERROR: {
-      "STRING"
-      "UNKNOWN_TOKEN"
-    }
-  }
+  TOKEN = require "TOKEN"
+  mementoContainer = require "memento_container"
 
-  addToken = (context, value, name) ->
+  addToken = (context, value, type) ->
     context.tokens.push
       value: value
-      name: name
+      type: type
       line: context.line
       position: context.position
     context.position += value.length
@@ -75,10 +53,10 @@ module.exports = do ->
     tokenRegex[TOKEN.IDENTIFIER] = /^([a-zA-Z0-9]+|[~!@#$%^&*\-_+/?|]+)/
 
     return (context) ->
-      for name, reg of tokenRegex
+      for type, reg of tokenRegex
         matched = context.target.match reg
         continue unless matched?
-        addToken context, matched[0], name
+        addToken context, matched[0], type
         return true
       return false
   
@@ -121,5 +99,10 @@ module.exports = do ->
 
         # error
         addError context
-    return context.tokens
+    context.tokens.push
+      value: ""
+      name: TOKEN.EOF
+      line: context.line
+      position: context.position
+    return mementoContainer.create context.tokens
 
