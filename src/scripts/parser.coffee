@@ -112,9 +112,9 @@ parseExprWithBrackets = (lexer) ->
 
 parseExpr = (lexer) ->
   return parseExprWithBrackets(lexer) or
-    parseLambdaAbstraction(lexer) or
     parseDefinition(lexer) or
     parseApplication(lexer) or
+    parseLambdaAbstraction(lexer) or
     parseIdentifier(lexer)
 
 parse = (lexer) ->
