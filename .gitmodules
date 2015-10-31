@@ -1,0 +1,4 @@
+[submodule "dist"]
+	path = dist
+	url = git@github.com:amo12937/church_encoding_web.git
+	branch = gh-pages
