@@ -1,6 +1,23 @@
 %html
   %head
     %script(src="scripts/app.js")
+    %style
+      a {
+        text-decoration: none;
+        color: #000;
+      }
+      a:hover {
+        color :#f00;
+      }
+      a:before {
+        content: "> "
+      }
+      pre, code, var, samp, kbd, .mono {
+        font-family: Consolas, 'Courier New', Courier, Monaco, monospace;
+        font-size: 14px;
+        line-height: 1.2;
+      }
   %body
+    %pre#examples(data-seed="<a href='#'><code>%code%</code></a>" data-key="%code%")
     %textarea#input(type="text" style="width: 100%;")
     #result
