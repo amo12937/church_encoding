@@ -2,11 +2,9 @@
 
 gulp = require "gulp"
 
-do (clean = require "gulp-clean") ->
-  gulp.task "clean", ->
-    gulp.src "dist/**/*"
-      .pipe clean()
-
+do (del = require "del") ->
+  gulp.task "clean", (done) ->
+    del ["dist/**/*"], done
 
 do (browserify = require "gulp-browserify", rename = require "gulp-rename") ->
   gulp.task "scripts", ->

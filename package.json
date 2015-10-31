@@ -15,9 +15,9 @@
   "devDependencies": {
     "coffee-script": "^1.10.0",
     "coffeeify": "^1.1.0",
+    "del": "^2.0.2",
     "gulp": "git://github.com/gulpjs/gulp.git#4.0",
     "gulp-browserify": "^0.5.1",
-    "gulp-clean": "^0.3.1",
     "gulp-rename": "^1.2.2"
   }
 }
