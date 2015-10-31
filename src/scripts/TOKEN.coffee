@@ -3,14 +3,13 @@
 prefixedKV = require "prefixed_kv"
 
 module.exports = prefixedKV "TOKEN", {
-  "COMMENT"
-  "STRING"
   "LAMBDA"
   "LAMBDA_BODY"
   "BRACKETS_OPEN"
   "BRACKETS_CLOSE"
   "DEF_OP"
   "IDENTIFIER"
+  "LINE_BREAK"
   "INDENT"
   "EOF"
   ERROR: {
