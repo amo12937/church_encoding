@@ -17,7 +17,7 @@ c = (a, e) ->
   expect(a.line  ).to.be.equal e.line
   expect(a.column).to.be.equal e.column
 
-examples =[
+examples = [
   [ 0, "", [eof 0, 0]]
   [ 1, "# comment", [eof 0, 9]]
   [ 2, "# comment\n", [t(TOKEN.LINE_BREAK, "\n", 0, 9), eof(1, 0)]]
