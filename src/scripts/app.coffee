@@ -27,7 +27,7 @@ window.addEventListener "load", ->
   $result = document.getElementById "result"
   compile = (code) ->
     console.time "tokenizer"
-    lexer = tokenizer code
+    lexer = tokenizer.tokenize code
     console.timeEnd "tokenizer"
     
     console.time "parser"

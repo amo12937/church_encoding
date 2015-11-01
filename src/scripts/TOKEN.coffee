@@ -13,7 +13,6 @@ module.exports = prefixedKV "TOKEN", {
   "INDENT"
   "EOF"
   ERROR: {
-    "STRING"
     "UNKNOWN_TOKEN"
   }
 }

@@ -3,7 +3,7 @@
 TOKEN = require "TOKEN"
 mementoContainer = require "memento_container"
 
-module.exports = tokenize = (code) ->
+exports.tokenize = (code) ->
   code = cleanCode code
   tokens = []
   line = 0
@@ -29,9 +29,7 @@ module.exports = tokenize = (code) ->
                errorToken(context)
     i += consumed
     
-    [dl, dc] = locationDiff context.chunk, consumed
-    line   += dl
-    column += dc
+    [line, column] = updateLocation line, column, context.chunk, consumed
 
   addToken TOKEN.EOF, ""
   return mementoContainer.create tokens
@@ -41,7 +39,7 @@ cleanCode = (code) ->
 
 # comment
 COMMENT_LONG    = /^#-(?:[^-]|-(?!#))*-#/
-COMMENT_ONELINE = /^#[^\n]*\n/
+COMMENT_ONELINE = /^#[^\n]*(?=\n|$)/
 commentToken = (c) ->
   match = c.chunk.match(COMMENT_LONG) or
           c.chunk.match(COMMENT_ONELINE)
@@ -93,8 +91,11 @@ errorToken = (c) ->
   c.addToken TOKEN.ERROR.UNKNOWN_TOKEN, match[0]
   return match[0].length
 
-locationDiff = (chunk, offset) ->
+updateLocation = (l, c, chunk, offset) ->
   return [0, 0] if offset is 0
   str = chunk[0...offset]
   ls = str.split "\n"
-  return [ls.length - 1, ls[ls.length - 1].length]
+  dl = ls.length - 1
+  if dl is 0
+    return [l, c + ls[dl].length]
+  return [l + dl, ls[dl].length]
