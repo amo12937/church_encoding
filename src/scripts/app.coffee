@@ -13,11 +13,11 @@ reporter =
 visitor = visitorProvider.create reporter
 jsVisitor = jsVisitorProvider.create()
 
-createResultFragment = (d, tokens) ->
+createResultFragment = (d, results) ->
   $fragment = d.createDocumentFragment()
-  tokens.forEach (token) ->
+  results.forEach (result) ->
     $p = d.createElement "p"
-    $p.textContent = JSON.stringify token
+    $p.textContent = result
     $fragment.appendChild $p
   return $fragment
 

@@ -7,18 +7,20 @@ exports.create = ->
   self = {visit}
 
   visit[AST.APPLICATION] = (node) ->
-    res = node.exprs.reduce ((p, c) -> "(#{p})(#{c.accept self})"), "\\dummy\\"
-    return res.split("(\\dummy\\)").join ""
+    [first, others...] = node.exprs
+    s = first.accept self
+    return s if others.length is 0
+    return others.reduce ((p, c) -> "(#{p})(#{c.accept self})"), s
 
   visit[AST.LAMBDA_ABSTRACTION] = (node) ->
-    template = "function (%arg%) { return (%body%); }"
+    template = "function (%arg%) { return %body%; }"
     res = "%body%"
     node.args.forEach (id) ->
       res = res.split("%body%").join template.split("%arg%").join id.value
     return res.split("%body%").join node.body.accept self
 
   visit[AST.DEFINITION] = (node) ->
-    return "var #{node.token.value} = (#{node.body.accept self});"
+    return "var #{node.token.value} = #{node.body.accept self};"
 
   visit[AST.IDENTIFIER] = (node) ->
     return node.token.value

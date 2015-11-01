@@ -7,8 +7,10 @@ exports.create = ->
   self = {visit}
 
   visit[AST.APPLICATION] = (node) ->
-    res = node.exprs.reduce ((p, c) -> "(#{p})(#{c.accept self})"), "\\dummy\\"
-    return res.split("(\\dummy\\)").join ""
+    [first, others...] = node.exprs
+    s = first.accept self
+    return s if others.length is 0
+    return others.reduce ((p, c) -> "(#{p})(#{c.accept self})"), s
 
   visit[AST.LAMBDA_ABSTRACTION] = (node) ->
     template = "(%arg%) -> %body%"
