@@ -1,6 +1,13 @@
 "use strict"
 
 AST = require "AST"
+{JS_KEYWORDS} = require "constant"
+
+NUMBER = "0123456789"
+
+normalizeIdentifier = (s) ->
+  return "$#{s}" if JS_KEYWORDS[s]? or NUMBER[s[0]]? 
+  return s
 
 exports.create = ->
   visit = {}
@@ -16,13 +23,13 @@ exports.create = ->
     template = "function (%arg%) { return %body%; }"
     res = "%body%"
     node.args.forEach (id) ->
-      res = res.split("%body%").join template.split("%arg%").join id.value
+      res = res.split("%body%").join template.split("%arg%").join normalizeIdentifier id.value
     return res.split("%body%").join node.body.accept self
 
   visit[AST.DEFINITION] = (node) ->
-    return "var #{node.token.value} = #{node.body.accept self};"
+    return "var #{normalizeIdentifier node.token.value} = #{node.body.accept self};"
 
   visit[AST.IDENTIFIER] = (node) ->
-    return node.token.value
+    return normalizeIdentifier node.token.value
 
   return self
