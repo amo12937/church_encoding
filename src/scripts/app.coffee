@@ -45,8 +45,8 @@ window.addEventListener "load", ->
     seed = $examples.getAttribute "data-seed"
     key = $examples.getAttribute "data-key"
     $fragment = examplesAppender.createFragment document, seed, key, (example) ->
-      $input.value = example
-      compile example
+      $input.value = "#{($input.value or "").trim()}\n#{example}".trim()
+      compile $input.value
     $examples.appendChild $fragment
 
   $input.addEventListener "change", ->

@@ -1,7 +1,7 @@
 "use strict"
 
 # EBNF
-# S                    ::= <application>
+# S                    ::= (<application> "\n")+
 # <application>        ::= <expr>+
 # <expr>               ::= "(" <application> ")"
 #                       |  <lambda_abstraction>
@@ -15,10 +15,21 @@
 TOKEN = require "TOKEN"
 AST = require "AST"
 
-exports.parse = (lexer) ->
+exports.parse = (lexer) -> parseMultiline lexer
+
+parseMultiline = (lexer) ->
+  rewind = lexer.memento()
+  rewindInner = lexer.memento()
   apps = []
-  while app = parseApplication lexer
-    apps.push app
+  loop
+    if app = parseApplication lexer
+      apps.push app
+
+    rewindInner = lexer.memento
+    token = lexer.next()
+    continue if token.tag is TOKEN.LINE_BREAK
+    rewindInner()
+    break
   return apps
 
 parseApplication = (lexer) ->
