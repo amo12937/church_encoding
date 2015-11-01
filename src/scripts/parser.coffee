@@ -1,51 +1,55 @@
 "use strict"
 
 # EBNF
-# + ... 1 回以上の繰り返し
-# <expr>               ::= <identifier>
-#                        | <lambda_abstraction>
-#                        | <application>
-#                        | <definition>
-#                        | "(" <expr> ")"
-# <identifier>         ::= /([_a-zA-Z0-9]+|[~!@#$%^&*\-+/?|]+)/
-# <lambda_abstraction> ::= "\\" <identifier>+ "." <expr>
-# <application>        ::= (<identifier> | "(" <expr> ")")+
-# <definition>         ::= <identifier> ":=" <expr>
-#
+# S                    ::= <application>
+# <application>        ::= <expr>+
+# <expr>               ::= "(" <application> ")"
+#                       |  <lambda_abstraction>
+#                       |  <definition>
+#                       |  <identifier>
+# <lambda_abstraction> ::= "\" <identifier>+ "." <application>
+# <definition>         ::= <identifier> ":=" <application>
+# <identifier>         ::= /^\w+$/
+
 
 TOKEN = require "TOKEN"
 AST = require "AST"
 
-acceptor = (visitor) ->
-  visitor.visit[@tag]? @
+exports.parse = (lexer) ->
+  apps = []
+  while app = parseApplication lexer
+    apps.push app
+  return apps
 
-identifierNode = (idToken) ->
-  tag: AST.IDENTIFIER
-  token: idToken
-  accept: acceptor
+parseApplication = (lexer) ->
+  rewind = lexer.memento()
+  rewindInner = lexer.memento()
 
-lambdaAbstractionNode = (identifiers, expr) ->
-  tag: AST.LAMBDA_ABSTRACTION
-  args: identifiers
-  body: expr
-  accept: acceptor
+  exprs = []
+  loop
+    rewindInner = lexer.memento()
+    break unless expr = parseExpr lexer
+    exprs.push expr
 
-applicationNode = (args) ->
-  tag: AST.APPLICATION
-  args: args
-  accept: acceptor
+  rewindInner()
+  return applicationNode exprs if exprs.length > 0
+  rewind()
 
-definitionNode = (idToken, expr) ->
-  tag: AST.DEFINITION
-  token: idToken
-  body: expr
-  accept: acceptor
+parseExpr = (lexer) ->
+  return parseApplicationWithBrackets(lexer) or
+    parseLambdaAbstraction(lexer) or
+    parseDefinition(lexer) or
+    parseIdentifier(lexer)
 
-parseIdentifier = (lexer) ->
+parseApplicationWithBrackets = (lexer) ->
   rewind = lexer.memento()
   token = lexer.next()
-  return identifierNode token if token.tag is TOKEN.IDENTIFIER
-  rewind()
+  return rewind() unless token.tag is TOKEN.BRACKETS_OPEN
+  app = parseApplication lexer
+  return rewind() unless app?
+  token = lexer.next()
+  return rewind() unless token.tag is TOKEN.BRACKETS_CLOSE
+  return app
 
 parseLambdaAbstraction = (lexer) ->
   rewind = lexer.memento()
@@ -59,32 +63,8 @@ parseLambdaAbstraction = (lexer) ->
     token = lexer.next()
   return rewind() if identifiers.length is 0 or token.tag isnt TOKEN.LAMBDA_BODY
 
-  expr = parseExpr lexer
-  return lambdaAbstractionNode identifiers, expr if expr?
-  rewind()
-
-parseApplication = (lexer) ->
-  rewind = lexer.memento()
-  rewindInner = lexer.memento()
-
-  args = []
-  while true
-    rewindInner = lexer.memento()
-    idNode = parseIdentifier lexer
-    if idNode?
-      args.push idNode
-      continue
-
-    token = lexer.next()
-    break unless token.tag is TOKEN.BRACKETS_OPEN
-    expr = parseExpr lexer
-    break unless expr?
-    token = lexer.next()
-    break unless token.tag is TOKEN.BRACKETS_CLOSE
-    args.push expr
-
-  rewindInner()
-  return applicationNode args if args.length > 1
+  app = parseApplication lexer
+  return lambdaAbstractionNode identifiers, app if app?
   rewind()
 
 parseDefinition = (lexer) ->
@@ -94,34 +74,40 @@ parseDefinition = (lexer) ->
   return rewind() unless idToken.tag is TOKEN.IDENTIFIER
   token = lexer.next()
   return rewind() unless token.tag is TOKEN.DEF_OP
-  expr = parseExpr lexer
+  app = parseApplication lexer
 
-  return definitionNode idToken, expr if expr?
+  return definitionNode idToken, app if app?
   rewind()
 
-parseExprWithBrackets = (lexer) ->
+parseIdentifier = (lexer) ->
   rewind = lexer.memento()
   token = lexer.next()
-  return rewind() unless token.tag is TOKEN.BRACKETS_OPEN
-  expr = parseExpr lexer
-  return rewind() unless expr?
-  token = lexer.next()
-  return expr if token.tag is TOKEN.BRACKETS_CLOSE
-
+  return identifierNode token if token.tag is TOKEN.IDENTIFIER
   rewind()
 
-parseExpr = (lexer) ->
-  return parseExprWithBrackets(lexer) or
-    parseDefinition(lexer) or
-    parseApplication(lexer) or
-    parseLambdaAbstraction(lexer) or
-    parseIdentifier(lexer)
+# nodes
+acceptor = (visitor) ->
+  visitor.visit[@tag]? @
 
-parse = (lexer) ->
-  exprs = []
-  while (expr = parseExpr lexer)?
-    exprs.push expr
-  return exprs
+applicationNode = (exprs) ->
+  tag: AST.APPLICATION
+  exprs: exprs
+  accept: acceptor
 
-module.exports = {parse}
+lambdaAbstractionNode = (args, app) ->
+  tag: AST.LAMBDA_ABSTRACTION
+  args: args
+  body: app
+  accept: acceptor
+
+definitionNode = (idToken, app) ->
+  tag: AST.DEFINITION
+  token: idToken
+  body: app
+  accept: acceptor
+
+identifierNode = (idToken) ->
+  tag: AST.IDENTIFIER
+  token: idToken
+  accept: acceptor
 

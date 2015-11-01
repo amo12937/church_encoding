@@ -2,7 +2,7 @@
 
 AST = require "AST"
 
-create = (reporter, tab = "  ") ->
+exports.create = (reporter, tab = "  ") ->
   depth = ""
 
   indent = (f) ->
@@ -17,42 +17,31 @@ create = (reporter, tab = "  ") ->
   visit = {}
   self = {visit: visit}
 
-  visit[AST.IDENTIFIER] = (node) ->
-    puts AST.IDENTIFIER
-    indent ->
-      puts node.token.value
+  visit[AST.APPLICATION] = (node) ->
+    puts AST.APPLICATION
+    indent -> expr.accept self for expr in node.exprs
 
   visit[AST.LAMBDA_ABSTRACTION] = (node) ->
     puts AST.LAMBDA_ABSTRACTION
 
     indent ->
       puts "arguments:"
-
-      indent ->
-        for id in node.args
-          puts id.value
-
+      indent -> puts id.value for id in node.args
+         
       puts "body:"
-      indent ->
-        node.body.accept self
-
-  visit[AST.APPLICATION] = (node) ->
-    puts AST.APPLICATION
-    indent ->
-      for expr in node.args
-        expr.accept self
+      indent -> node.body.accept self
 
   visit[AST.DEFINITION] = (node) ->
     puts AST.DEFINITION
     indent ->
       puts "name:"
-      indent ->
-        puts node.token.value
+      indent -> puts node.token.value
 
       puts "body:"
-      indent ->
-        node.body.accept self
+      indent -> node.body.accept self
+       
+  visit[AST.IDENTIFIER] = (node) ->
+    puts AST.IDENTIFIER
+    indent -> puts node.token.value
 
   return self
-    
-module.exports = {create}
