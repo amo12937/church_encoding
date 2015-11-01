@@ -5,7 +5,8 @@ AST = require "AST"
 NUMBER = "0123456789"
 
 normalizeIdentifier = (s) ->
-  return "$#{s}" if JS_KEYWORDS[s]? or CS_KEYWORDS[s]? or NUMBER[s[0]]?
+  return "$#{s}" if JS_KEYWORDS[s]? or CS_KEYWORDS[s]?
+  return "$_#{s}" if NUMBER[s[0]]?
   return s
 
 exports.create = ->
