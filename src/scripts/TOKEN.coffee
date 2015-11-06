@@ -14,5 +14,6 @@ module.exports = prefixedKV "TOKEN", {
   "EOF"
   ERROR: {
     "UNKNOWN_TOKEN"
+    "UNMATCHED_BRACKET"
   }
 }

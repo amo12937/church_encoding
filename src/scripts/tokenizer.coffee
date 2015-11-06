@@ -8,16 +8,26 @@ exports.tokenize = (code) ->
   tokens = []
   line = 0
   column = 0
+  brackets = []
 
-  addToken = (tag, value) ->
+  addToken = (tag, value, length = value.length) ->
     token = {tag, value, line, column}
     tokens.push token
-    token
+    return length
+
+  pushBracket = (b) -> brackets.push b
+  popBracket = -> brackets.pop()
+  latestBracket = -> brackets[brackets.length - 1]
 
   context =
     code:     code
     chunk:    code
+    parenthesisStack: []
     addToken: addToken
+    brackets:
+      push: pushBracket
+      pop: popBracket
+      latest: latestBracket
 
   i = 0
   while context.chunk = code[i..]
@@ -54,27 +64,38 @@ whitespaceToken = (c) ->
 MULTI_DENT = /^\s*\n([^\n\S]*)/
 lineToken = (c) ->
   return 0 unless match = c.chunk.match MULTI_DENT
-  c.addToken TOKEN.LINE_BREAK, "\n"
-  return match[0].length
+  return match[0].length if c.brackets.latest()?
+  return c.addToken TOKEN.LINE_BREAK, "\n", match[0].length
 
 # literal
 LITERAL_CHAR =
   "\\": TOKEN.LAMBDA
   ".": TOKEN.LAMBDA_BODY
-  "(": TOKEN.BRACKETS_OPEN
+LITERAL_OPENER =
+  "(":
+    token: TOKEN.BRACKETS_OPEN
+    opposite: ")"
+LITERAL_CLOSER =
   ")": TOKEN.BRACKETS_CLOSE
 LITERAL_CHAR2 =
   ":=": TOKEN.DEF_OP
 
 literalToken = (c) ->
-  if (t = LITERAL_CHAR[v = c.chunk[0]])?
-    c.addToken t, v
-    return 1
+  v = c.chunk[0]
+  return c.addToken t, v if (t = LITERAL_CHAR[v])?
 
-  if (t = LITERAL_CHAR2[v = c.chunk[0..1]])?
-    c.addToken t, v
-    return 2
+  if (t = LITERAL_OPENER[v])?
+    c.brackets.push t.opposite
+    return c.addToken t.token, v
+  
+  if (t = LITERAL_CLOSER[v])?
+    return c.addToken TOKEN.ERROR.UNMATCHED_BRACKET, v unless c.brackets.latest() is v
+    c.brackets.pop()
+    return c.addToken t, v
 
+  v = c.chunk[0..1]
+  return c.addToken t, v if (t = LITERAL_CHAR2[v])?
+  
   return 0
 
 # identifier
