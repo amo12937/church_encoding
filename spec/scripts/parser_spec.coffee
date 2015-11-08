@@ -20,9 +20,8 @@ describe "parser", ->
   examples.forEach ([key, code, expected]) ->
     it "should compile church encoding[#{key}]", ->
       lexer = tokenizer.tokenize code
-      results = parser.parse lexer
-      expect(results.length).to.be.equal expected.length
-      for result, idx in results
-        expect(result).to.have.property "accept"
-        expect(result.accept visitor).to.be.equal expected[idx]
+      result = parser.parse lexer
+      expect(result).to.have.property "accept"
+      for res, idx in result.accept visitor
+        expect(res).to.be.equal expected[idx]
 

@@ -17,6 +17,9 @@ exports.create = (reporter, tab = "  ") ->
   visit = {}
   self = {visit: visit}
 
+  visit[AST.LIST] = (node) ->
+    return node.exprs.map (expr) -> expr.accept self
+
   visit[AST.APPLICATION] = (node) ->
     puts AST.APPLICATION
     indent -> expr.accept self for expr in node.exprs

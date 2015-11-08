@@ -3,8 +3,8 @@
 tokenizer = require "tokenizer"
 parser = require "parser"
 visitorProvider = require "visitor/tree_view_visitor"
-jsonVisitorProvider = require "visitor/json_visitor"
 jsVisitorProvider = require "visitor/js_visitor"
+toStringVisitorProvider = require "visitor/to_string_visitor"
 examplesAppender = require "views/append_examples"
 
 reporter =
@@ -12,6 +12,7 @@ reporter =
 
 visitor = visitorProvider.create reporter
 jsVisitor = jsVisitorProvider.create()
+toStringVisitor = toStringVisitorProvider.create()
 
 createResultFragment = (d, results) ->
   $fragment = d.createDocumentFragment()
@@ -31,14 +32,14 @@ window.addEventListener "load", ->
     console.timeEnd "tokenizer"
     
     console.time "parser"
-    results = parser.parse lexer
+    result = parser.parse lexer
     console.timeEnd "parser"
 
-    for expr in results
-      expr.accept visitor
+    result.accept visitor
+    reporter.report result.accept toStringVisitor
 
     $result.textContent = null
-    $fragment = createResultFragment document, results.map (expr) -> expr.accept jsVisitor
+    $fragment = createResultFragment document, result.accept jsVisitor
     $result.appendChild $fragment
 
   do ->

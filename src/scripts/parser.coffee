@@ -30,7 +30,7 @@ parseMultiline = (lexer) ->
     continue if token.tag is TOKEN.LINE_BREAK
     rewindInner()
     break
-  return apps
+  return listNode apps
 
 parseApplication = (lexer) ->
   rewind = lexer.memento()
@@ -99,6 +99,11 @@ parseIdentifier = (lexer) ->
 # nodes
 acceptor = (visitor) ->
   visitor.visit[@tag]? @
+
+listNode = (exprs) ->
+  tag: AST.LIST
+  exprs: exprs
+  accept: acceptor
 
 applicationNode = (exprs) ->
   tag: AST.APPLICATION

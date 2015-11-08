@@ -13,6 +13,9 @@ exports.create = ->
   visit = {}
   self = {visit}
 
+  visit[AST.LIST] = (node) ->
+    return node.exprs.map (expr) -> expr.accept self
+
   visit[AST.APPLICATION] = (node) ->
     [first, others...] = node.exprs
     s = first.accept self
