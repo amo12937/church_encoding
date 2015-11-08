@@ -5,6 +5,7 @@ parser = require "parser"
 visitorProvider = require "visitor/tree_view_visitor"
 jsVisitorProvider = require "visitor/js_visitor"
 toStringVisitorProvider = require "visitor/to_string_visitor"
+interpreterProvider = require "visitor/interpreter"
 examplesAppender = require "views/append_examples"
 
 reporter =
@@ -13,6 +14,7 @@ reporter =
 visitor = visitorProvider.create reporter
 jsVisitor = jsVisitorProvider.create()
 toStringVisitor = toStringVisitorProvider.create()
+interpreter = interpreterProvider.create reporter
 
 createResultFragment = (d, results) ->
   $fragment = d.createDocumentFragment()
@@ -35,8 +37,9 @@ window.addEventListener "load", ->
     result = parser.parse lexer
     console.timeEnd "parser"
 
-    result.accept visitor
-    reporter.report result.accept toStringVisitor
+#    result.accept visitor
+#    reporter.report result.accept toStringVisitor
+    interpreter.run result
 
     $result.textContent = null
     $fragment = createResultFragment document, result.accept jsVisitor
