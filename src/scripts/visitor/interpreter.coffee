@@ -1,70 +1,76 @@
 "use strict"
 
 AST = require "AST"
-envManagerProvider = require "env_manager"
+FutureEval = require "future_eval"
+EnvManager = require("env_manager")
+CREATE_CHILD_KEY = EnvManager.CREATE_CHILD_KEY
+envManager = EnvManager.create()
+toStringVisitor = require("visitor/to_string_visitor").create()
 
-class Lambda
-  constructor: (@run) -> undefined
-Lambda.create = (func) -> new Lambda func
+class Applicable
+  constructor: (@apply) -> undefined
 
-class Application
-  constructor: (@left, @right) -> undefined
-Application.create = (left, right) -> new Application left, right
+class Lambda extends Applicable
+  constructor: (@env, @args, @body) ->
+    super (x) ->
+      [arg, others...] = @args
+      e = @env[CREATE_CHILD_KEY]()
+      e[arg] = x
+      v = createVisitor e
+      return @body.accept v if others.length is 0
+      return Lambda.create e, others, @body
+  toString: ->
+    a = @args.join " "
+    b = @body.accept toStringVisitor
+    "(\\#{a}.#{b})"
+Lambda.create = (env, args, body) -> new Lambda env, args, body
 
-exports.create = (reporter) ->
+class Definition extends Applicable
+  constructor: (@node) ->
+    super (x) -> x
+  toString: ->
+    @node.accept toStringVisitor
+Definition.create = (node) -> new Definition node
+
+createVisitor = (env) ->
   visit = {}
   self = {visit}
 
-  envManager = envManagerProvider.create()
-  CHILD_ENV_KEY = envManagerProvider.CHILD_ENV_KEY
-
-  self.run = (ast) ->
-    reporter.report ast.accept self
-    
   visit[AST.LIST] = (node) ->
     res = null
     for expr in node.exprs
       res = expr.accept self # 最後の結果だけを返す
     return res
 
-  visitApp = (exprs, env) ->
+  visitApp = (exprs) ->
     if exprs.length is 1
       return exprs[0].accept self
     [lefts..., right] = exprs
-    left = visitApp lefts, env
-    if left instanceof Lambda
-      return left.run right.accept self
-    return Application.create left, right
+    left = visitApp lefts
+  
+    if left instanceof Applicable
+      return left.apply FutureEval.create right, self
+    return "#{left} #{right.accept toStringVisitor}" # これ以上簡約できない
 
   visit[AST.APPLICATION] = (node) ->
-    env = envManager.getCurrent()
-    return visitApp node.exprs, env
-
-  visitLambda = (args, body, env) ->
-    [arg, others...] = args
-    i = 0
-    return Lambda.create (x) ->
-      env[CHILD_ENV_KEY] (local) ->
-        local[arg] = x
-        return body.accept self if others.length is 0
-        return visitLambda others, body, local
+    visitApp node.exprs
 
   visit[AST.LAMBDA_ABSTRACTION] = (node) ->
     args = node.args.map (id) -> id.value
-    env = envManager.getCurrent()
-    return visitLambda args, node.body, env
-  
+    return Lambda.create env, args, node.body
+
   visit[AST.DEFINITION] = (node) ->
     name = node.token.value
-    body = node.body.accept self
-    env = envManager.getCurrent()
-    env[name] = body
-    return Lambda.create (x) -> x
+    env[name] = FutureEval.create node.body, self
+    return Definition.create node
 
   visit[AST.IDENTIFIER] = (node) ->
-    id = node.token.value
-    env = envManager.getCurrent()
-    return env[id] or id
+    return env[node.token.value]?.get() or node.accept toStringVisitor # これ以上簡約できない
+
+  self.run = (ast) -> "#{ast.accept self}"
 
   return self
+
+exports.create = (env = envManager.getGlobal()) ->
+  return createVisitor env
 

@@ -14,7 +14,7 @@ reporter =
 visitor = visitorProvider.create reporter
 jsVisitor = jsVisitorProvider.create()
 toStringVisitor = toStringVisitorProvider.create()
-interpreter = interpreterProvider.create reporter
+interpreter = interpreterProvider.create()
 
 createResultFragment = (d, results) ->
   $fragment = d.createDocumentFragment()
@@ -39,7 +39,7 @@ window.addEventListener "load", ->
 
 #    result.accept visitor
 #    reporter.report result.accept toStringVisitor
-    interpreter.run result
+    reporter.report interpreter.run result
 
     $result.textContent = null
     $fragment = createResultFragment document, result.accept jsVisitor

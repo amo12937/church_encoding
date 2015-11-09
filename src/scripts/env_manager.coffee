@@ -1,20 +1,13 @@
 "use strict"
 
-exports.CHILD_ENV_KEY = CEK = ">" # ID として指定できないものならなんでも良い
+exports.CREATE_CHILD_KEY = CCK = "<" # ID として指定できないものならなんでも良い
 
 exports.create = ->
   Env = -> undefined
-
   global = new Env
-  current = global
 
-  Env.prototype[CEK] = (f) ->
-    old = current
+  Env.prototype[CCK] = ->
     Env.prototype = @
-    current = new Env
-    result = f current
-    current = old
-    return result
+    return new Env
 
-  getCurrent: -> current
-
+  getGlobal: -> global
