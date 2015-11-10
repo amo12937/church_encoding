@@ -46,9 +46,9 @@ examples = [
   [17, ":=", [t(TOKEN.DEF_OP, ":=", 0, 0), eof(0, 2)]]
   [18, "hoge", [t(TOKEN.IDENTIFIER, "hoge", 0, 0), eof(0, 4)]]
   [19, "h_ge", [t(TOKEN.IDENTIFIER, "h_ge", 0, 0), eof(0, 4)]]
-  [20, "1234", [t(TOKEN.IDENTIFIER, "1234", 0, 0), eof(0, 4)]]
-  [21, "1_34", [t(TOKEN.IDENTIFIER, "1_34", 0, 0), eof(0, 4)]]
-  [22, "____", [t(TOKEN.IDENTIFIER, "____", 0, 0), eof(0, 4)]]
+  [20, "1234", [t(TOKEN.NUMBER.NATURAL, "1234", 0, 0), eof(0, 4)]]
+  [21, "1_34", [t(TOKEN.ERROR.UNKNOWN_TOKEN, "1_34", 0, 0), eof(0, 4)]]
+  [22, "h0ge", [t(TOKEN.IDENTIFIER, "h0ge", 0, 0), eof(0, 4)]]
   [23, "____", [t(TOKEN.IDENTIFIER, "____", 0, 0), eof(0, 4)]]
   [24, "~!@#$%^&*-+={}[]|:;\"'<>?./", [
     t(TOKEN.ERROR.UNKNOWN_TOKEN, "~!@#$%^&*-+={}[]|:;\"'<>?./", 0, 0)

@@ -107,7 +107,7 @@ identifierToken = (c) ->
   return match[0].length
 
 # Natural Number
-NATURAL_NUMBER = /^(?:0|[1-9]\d*)/
+NATURAL_NUMBER = /^(?:0|[1-9]\d*)(?![_a-zA-Z])/
 naturalNumberToken = (c) ->
   return 0 unless match = c.chunk.match NATURAL_NUMBER
   c.addToken TOKEN.NUMBER.NATURAL, match[0]

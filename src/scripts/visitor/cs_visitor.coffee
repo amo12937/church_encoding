@@ -6,7 +6,6 @@ NUMBER = "0123456789"
 
 normalizeIdentifier = (s) ->
   return "$#{s}" if JS_KEYWORDS[s]? or CS_KEYWORDS[s]?
-  return "$_#{s}" if NUMBER[s[0]]?
   return s
 
 exports.create = ->
@@ -27,5 +26,8 @@ exports.create = ->
 
   visit[AST.IDENTIFIER] = (node) ->
     normalizeIdentifier node.name
+
+  visit[AST.NUMBER.NATURAL] = (node) ->
+    "$_#{node.value}"
 
   return self

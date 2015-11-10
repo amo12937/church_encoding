@@ -6,7 +6,6 @@ BradeRunner = require "runner/brade"
 FutureEval = require "future_eval"
 
 # succ := \n f x.f (n f x)
-name = "succ"
 module.exports = class SuccIdentifierRunner extends IdentifierRunner
   run: (nThunk) ->
     i = @interpreter
@@ -21,5 +20,4 @@ module.exports = class SuccIdentifierRunner extends IdentifierRunner
         fThunk.get().run FutureEval.createWithGetter ->
           n.run(fThunk).run(xThunk)
 
-IdentifierRunner.register name, SuccIdentifierRunner
-
+IdentifierRunner.register "succ", SuccIdentifierRunner
