@@ -99,8 +99,8 @@ literalToken = (c) ->
   
   return 0
 
-# identifier
-IDENTIFIER = /^[_a-zA-Z]\w*/
+# identifier / symbol
+IDENTIFIER = /^(?:[_a-zA-Z]\w*|[!$%&*+/<=>?@^|\-~]+)/
 identifierToken = (c) ->
   return 0 unless match = c.chunk.match IDENTIFIER
   c.addToken TOKEN.IDENTIFIER, match[0]
