@@ -11,6 +11,7 @@ LambdaAbstractionRunner = require "runner/lambda_abstraction"
 DefinitionRunner = require "runner/definition"
 IdentifierRunner = require "runner/identifier"
 NumberRunner = require "runner/number"
+require "runner/reserved"
 
 exports.create = createInterpreter = (env = envManager.getGlobal()) ->
   visit = {}
