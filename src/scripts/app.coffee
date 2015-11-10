@@ -37,12 +37,12 @@ window.addEventListener "load", ->
     result = parser.parse lexer
     console.timeEnd "parser"
 
-#    result.accept visitor
-#    reporter.report result.accept toStringVisitor
-    reporter.report interpreter.run result
+    result.accept visitor
+    reporter.report result.accept toStringVisitor
+#    reporter.report interpreter.run result
 
     $result.textContent = null
-    $fragment = createResultFragment document, result.accept jsVisitor
+    $fragment = createResultFragment document, result.accept(jsVisitor).split "\n"
     $result.appendChild $fragment
 
   do ->

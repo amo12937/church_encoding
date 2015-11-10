@@ -9,20 +9,16 @@ exports.create = ->
     node.exprs.map((expr) -> expr.accept self).join "\n"
 
   visit[AST.APPLICATION] = (node) ->
-    return node.exprs[0].accept self if node.exprs.length is 1
-    tmp = node.exprs.map((expr) -> "#{expr.accept self}").join " "
-    return "(#{tmp})"
+    "(#{node.left.accept self} #{node.right.accept self})"
 
   visit[AST.LAMBDA_ABSTRACTION] = (node) ->
-    args = node.args.map((id) -> id.value).join " "
-    body = node.body.accept self
-    return "(\\#{args}.#{body})"
+    "(\\#{node.arg}.#{node.body.accept self})"
 
   visit[AST.DEFINITION] = (node) ->
-    return "#{node.token.value} := #{node.body.accept self}"
+    "(#{node.name} := #{node.body.accept self})"
 
   visit[AST.IDENTIFIER] = (node) ->
-    return node.token.value
+    node.name
 
   return self
 

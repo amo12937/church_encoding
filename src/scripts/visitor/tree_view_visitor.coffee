@@ -18,33 +18,30 @@ exports.create = (reporter, tab = "  ") ->
   self = {visit: visit}
 
   visit[AST.LIST] = (node) ->
-    return node.exprs.map (expr) -> expr.accept self
+    for expr in node.exprs
+      expr.accept self
+    return
 
   visit[AST.APPLICATION] = (node) ->
+  visit[AST.APPLICATION] = (node) ->
     puts AST.APPLICATION
-    indent -> expr.accept self for expr in node.exprs
+    indent ->
+      node.left.accept self
+      node.right.accept self
 
   visit[AST.LAMBDA_ABSTRACTION] = (node) ->
     puts AST.LAMBDA_ABSTRACTION
-
     indent ->
-      puts "arguments:"
-      indent -> puts id.value for id in node.args
-         
-      puts "body:"
-      indent -> node.body.accept self
+      puts node.arg
+      node.body.accept self
 
   visit[AST.DEFINITION] = (node) ->
     puts AST.DEFINITION
     indent ->
-      puts "name:"
-      indent -> puts node.token.value
-
-      puts "body:"
-      indent -> node.body.accept self
-       
+      puts node.name
+      node.body.accept self
+      
   visit[AST.IDENTIFIER] = (node) ->
-    puts AST.IDENTIFIER
-    indent -> puts node.token.value
+    puts node.name
 
   return self

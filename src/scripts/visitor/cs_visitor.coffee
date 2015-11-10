@@ -14,25 +14,18 @@ exports.create = ->
   self = {visit}
 
   visit[AST.LIST] = (node) ->
-    return node.exprs.map (expr) -> expr.accept self
+    node.exprs.map((expr) -> expr.accept self).join "\n"
 
   visit[AST.APPLICATION] = (node) ->
-    [first, others...] = node.exprs
-    s = first.accept self
-    return s if others.length is 0
-    return others.reduce ((p, c) -> "(#{p})(#{c.accept self})"), s
+    "(#{node.left.accept self})(#{node.right.accept self})"
 
   visit[AST.LAMBDA_ABSTRACTION] = (node) ->
-    template = "(%arg%) -> %body%"
-    res = "%body%"
-    node.args.forEach (id) ->
-      res = res.split("%body%").join template.split("%arg%").join normalizeIdentifier id.value
-    return res.split("%body%").join node.body.accept self
+    "(#{node.arg}) -> #{node.body.accept self}"
 
   visit[AST.DEFINITION] = (node) ->
-    return "#{normalizeIdentifier node.token.value} = #{node.body.accept self}"
+    "#{normalizeIdentifier node.name} = #{node.body.accept self}"
 
   visit[AST.IDENTIFIER] = (node) ->
-    return normalizeIdentifier node.token.value
+    normalizeIdentifier node.name
 
   return self

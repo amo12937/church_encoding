@@ -22,6 +22,5 @@ describe "parser", ->
       lexer = tokenizer.tokenize code
       result = parser.parse lexer
       expect(result).to.have.property "accept"
-      for res, idx in result.accept visitor
-        expect(res).to.be.equal expected[idx]
+      expect(result.accept visitor).to.be.equal expected
 

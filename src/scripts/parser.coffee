@@ -43,8 +43,10 @@ parseApplication = (lexer) ->
     exprs.push expr
 
   rewindInner()
-  return applicationNode exprs if exprs.length > 0
-  rewind()
+  return rewind() if exprs.length is 0
+  [app, others...] = exprs
+  app = applicationNode app, expr for expr in others
+  return app
 
 parseExpr = (lexer) ->
   return parseApplicationWithBrackets(lexer) or
@@ -67,16 +69,19 @@ parseLambdaAbstraction = (lexer) ->
   token = lexer.next()
   return rewind() unless token.tag is TOKEN.LAMBDA
 
-  identifiers = []
+  argTokens = []
   token = lexer.next()
   while token.tag is TOKEN.IDENTIFIER
-    identifiers.push token
+    argTokens.push token
     token = lexer.next()
-  return rewind() if identifiers.length is 0 or token.tag isnt TOKEN.LAMBDA_BODY
+  return rewind() if argTokens.length is 0 or token.tag isnt TOKEN.LAMBDA_BODY
 
-  app = parseApplication lexer
-  return lambdaAbstractionNode identifiers, app if app?
-  rewind()
+  body = parseApplication lexer
+  return rewind() unless body?
+  lmda = body
+  for argToken in argTokens by -1
+    lmda = lambdaAbstractionNode argToken.value, lmda
+  return lmda
 
 parseDefinition = (lexer) ->
   rewind = lexer.memento()
@@ -85,15 +90,15 @@ parseDefinition = (lexer) ->
   return rewind() unless idToken.tag is TOKEN.IDENTIFIER
   token = lexer.next()
   return rewind() unless token.tag is TOKEN.DEF_OP
-  app = parseApplication lexer
+  body = parseApplication lexer
 
-  return definitionNode idToken, app if app?
+  return definitionNode idToken.value, body if body?
   rewind()
 
 parseIdentifier = (lexer) ->
   rewind = lexer.memento()
   token = lexer.next()
-  return identifierNode token if token.tag is TOKEN.IDENTIFIER
+  return identifierNode token.value if token.tag is TOKEN.IDENTIFIER
   rewind()
 
 # nodes
@@ -105,25 +110,26 @@ listNode = (exprs) ->
   exprs: exprs
   accept: acceptor
 
-applicationNode = (exprs) ->
+applicationNode = (left, right) ->
   tag: AST.APPLICATION
-  exprs: exprs
+  left: left
+  right: right
   accept: acceptor
 
-lambdaAbstractionNode = (args, app) ->
+lambdaAbstractionNode = (arg, body) ->
   tag: AST.LAMBDA_ABSTRACTION
-  args: args
-  body: app
+  arg: arg
+  body: body
   accept: acceptor
 
-definitionNode = (idToken, app) ->
+definitionNode = (name, body) ->
   tag: AST.DEFINITION
-  token: idToken
-  body: app
+  name: name
+  body: body
   accept: acceptor
 
-identifierNode = (idToken) ->
+identifierNode = (name) ->
   tag: AST.IDENTIFIER
-  token: idToken
+  name: name
   accept: acceptor
 

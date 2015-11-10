@@ -6,18 +6,22 @@ exports.create = ->
   visit = {}
   self = {visit}
 
-  visit[AST.APPLICATION] = (node) ->
+  visit[AST.LIST] = (node) ->
     node.exprs.map (expr) -> expr.accept self
 
+  visit[AST.APPLICATION] = (node) ->
+    left: node.left.accept self
+    right: node.right.accept self
+
   visit[AST.LAMBDA_ABSTRACTION] = (node) ->
-    args: node.args.map (id) -> id.value
+    arg: node.arg
     body: node.body.accept self
 
   visit[AST.DEFINITION] = (node) ->
-    name: node.token.value
+    name: node.name
     body: node.body.accept self
 
   visit[AST.IDENTIFIER] = (node) ->
-    node.token.value
+    node.name
 
   return self
