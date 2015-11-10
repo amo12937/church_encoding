@@ -9,6 +9,9 @@ module.exports = prefixedKV "TOKEN", {
   "BRACKETS_CLOSE"
   "DEF_OP"
   "IDENTIFIER"
+  NUMBER: {
+    "NATURAL"
+  }
   "LINE_BREAK"
   "INDENT"
   "EOF"

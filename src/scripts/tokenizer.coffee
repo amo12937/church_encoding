@@ -31,11 +31,12 @@ exports.tokenize = (code) ->
 
   i = 0
   while context.chunk = code[i..]
-    consumed = commentToken(context)    or
-               whitespaceToken(context) or
-               lineToken(context)       or
-               literalToken(context)    or
-               identifierToken(context) or
+    consumed = commentToken(context)       or
+               whitespaceToken(context)    or
+               lineToken(context)          or
+               literalToken(context)       or
+               identifierToken(context)    or
+               naturalNumberToken(context) or
                errorToken(context)
     i += consumed
     
@@ -99,10 +100,17 @@ literalToken = (c) ->
   return 0
 
 # identifier
-IDENTIFIER = /^[_a-zA-Z0-9]+/
+IDENTIFIER = /^[_a-zA-Z]\w*/
 identifierToken = (c) ->
   return 0 unless match = c.chunk.match IDENTIFIER
   c.addToken TOKEN.IDENTIFIER, match[0]
+  return match[0].length
+
+# Natural Number
+NATURAL_NUMBER = /^(?:0|[1-9]\d*)/
+naturalNumberToken = (c) ->
+  return 0 unless match = c.chunk.match NATURAL_NUMBER
+  c.addToken TOKEN.NUMBER.NATURAL, match[0]
   return match[0].length
 
 # error

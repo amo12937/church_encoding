@@ -8,4 +8,7 @@ module.exports = prefixedKV "AST", {
   "LAMBDA_ABSTRACTION"
   "DEFINITION"
   "IDENTIFIER"
+  NUMBER: {
+    "NATURAL"
+  }
 }

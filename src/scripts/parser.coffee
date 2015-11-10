@@ -7,9 +7,11 @@
 #                       |  <lambda_abstraction>
 #                       |  <definition>
 #                       |  <identifier>
+#                       |  <natural_number>
 # <lambda_abstraction> ::= "\" <identifier>+ "." <application>
 # <definition>         ::= <identifier> ":=" <application>
-# <identifier>         ::= /^\w+$/
+# <identifier>         ::= /^\w(?:\w|\d)+$/
+# <natural_number>     ::= /^(?:0|[1-9]\d*)$/
 
 
 TOKEN = require "TOKEN"
@@ -98,38 +100,45 @@ parseDefinition = (lexer) ->
 parseIdentifier = (lexer) ->
   rewind = lexer.memento()
   token = lexer.next()
-  return identifierNode token.value if token.tag is TOKEN.IDENTIFIER
-  rewind()
+  switch token.tag
+    when TOKEN.IDENTIFIER then return identifierNode token.value
+    when TOKEN.NUMBER.NATURAL then return naturalNumberNode token.value
+    else rewind()
 
 # nodes
 acceptor = (visitor) ->
   visitor.visit[@tag]? @
 
-listNode = (exprs) ->
+exports.listNode = listNode = (exprs) ->
   tag: AST.LIST
   exprs: exprs
   accept: acceptor
 
-applicationNode = (left, right) ->
+exports.applicationNode = applicationNode = (left, right) ->
   tag: AST.APPLICATION
   left: left
   right: right
   accept: acceptor
 
-lambdaAbstractionNode = (arg, body) ->
+exports.lambdaAbstractionNode = lambdaAbstractionNode = (arg, body) ->
   tag: AST.LAMBDA_ABSTRACTION
   arg: arg
   body: body
   accept: acceptor
 
-definitionNode = (name, body) ->
+exports.definitionNode = definitionNode = (name, body) ->
   tag: AST.DEFINITION
   name: name
   body: body
   accept: acceptor
 
-identifierNode = (name) ->
+exports.identifierNode = identifierNode = (name) ->
   tag: AST.IDENTIFIER
   name: name
+  accept: acceptor
+
+exports.naturalNumberNode = naturalNumberNode = (value) ->
+  tag: AST.NUMBER.NATURAL
+  value: +value
   accept: acceptor
 
