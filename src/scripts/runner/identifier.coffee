@@ -10,7 +10,9 @@ module.exports = class IdentifierRunner extends Runner
   toString: -> @name
 
 IdentifierRunner.create = (interpreter, name) ->
-  Runner.create.call (reserved[name] or IdentifierRunner), interpreter, name
+  runnerProvider = reserved[name] or IdentifierRunner
+  runnerProvider.createMyself?(interpreter, name) or
+    Runner.create.call runnerProvider, interpreter, name
 
 IdentifierRunner.register = (name, runner) ->
   reserved[name] = runner
