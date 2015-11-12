@@ -2,22 +2,13 @@
 
 IdentifierRunner = require "runner/identifier"
 NumberRunner = require "runner/number"
-BradeRunner = require "runner/brade"
-FutureEval = require "future_eval"
 
 # succ := \n f x.f (n f x)
 module.exports = class SuccIdentifierRunner extends IdentifierRunner
   run: (nThunk) ->
-    i = @interpreter
     n = nThunk.get()
     if n instanceof NumberRunner
-      return NumberRunner.create i, n.value + 1
-
-    toS1 = -> "\\f x.f (n f x)"
-    return BradeRunner.create i, toS1, (fThunk) ->
-      toS2 = -> "\\x.f (n f x)"
-      return BradeRunner.create i, toS2, (xThunk) ->
-        fThunk.get().run FutureEval.createWithGetter ->
-          n.run(fThunk).run(xThunk)
+      return NumberRunner.create @interpreter, n.value + 1
+    return @interpreter.env[@name]?.get().run nThunk
 
 IdentifierRunner.register "succ", SuccIdentifierRunner

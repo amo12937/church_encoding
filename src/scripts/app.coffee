@@ -7,6 +7,7 @@ jsVisitorProvider = require "visitor/js_visitor"
 toStringVisitorProvider = require "visitor/to_string_visitor"
 interpreterProvider = require "visitor/interpreter"
 examplesAppender = require "views/append_examples"
+require "runner/reserved"
 
 reporter =
   report: console.log.bind console

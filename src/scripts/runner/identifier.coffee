@@ -2,17 +2,19 @@
 
 Runner = require "runner/runner"
 
-reserved = {}
+stdlib = null
+runners = {}
 
 module.exports = class IdentifierRunner extends Runner
   constructor: (interpreter, @name) ->
     super interpreter
+  run: (thunk) ->
+    return r if runners[@name]? and r = runners[@name].run thunk
+    return stdlib.env[@name]?.get().run(thunk) or thunk.get()
   toString: -> @name
 
-IdentifierRunner.create = (interpreter, name) ->
-  runnerProvider = reserved[name] or IdentifierRunner
-  runnerProvider.createMyself?(interpreter, name) or
-    Runner.create.call runnerProvider, interpreter, name
+IdentifierRunner.setStdlib = (s) ->
+  stdlib = s
 
-IdentifierRunner.register = (name, runner) ->
-  reserved[name] = runner
+IdentifierRunner.register = (name, runnerProvider) ->
+  runners[name] = runnerProvider.create stdlib, name
