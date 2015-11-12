@@ -21,6 +21,6 @@ module.exports = [
   [17, "second := \\p.p false"                                      , "second = (p) -> (p)($false)"]
   [18, "Y      := \\f.(\\x.f (x x)) (\\x.f (x x))"                  , "Y = (f) -> ((x) -> (f)((x)(x)))((x) -> (f)((x)(x)))"]
   [19, "Z      := \\f.(\\x.f (\\y.x x y)) (\\x.f (\\y.x x y))"      , "Z = (f) -> ((x) -> (f)((y) -> ((x)(x))(y)))((x) -> (f)((y) -> ((x)(x))(y)))"]
-  [20, "fact   := \\f n.if (isZero n) 1 (\\x.mul n (f (pred n)) x)" , "fact = (f) -> (n) -> ((($if)((isZero)(n)))($_1))((x) -> (((mul)(n))((f)((pred)(n))))(x))"]
+  [20, "fact   := \\f n.if (isZero n) 1 (* n (f (pred n)))"         , "fact = (f) -> (n) -> ((($if)((isZero)(n)))($_1))((x) -> (((mul)(n))((f)((pred)(n))))(x))"]
 ]
 

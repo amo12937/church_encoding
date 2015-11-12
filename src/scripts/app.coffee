@@ -40,7 +40,9 @@ window.addEventListener "load", ->
 
 #    result.accept visitor
 #    reporter.report result.accept toStringVisitor
+    console.time "interpreter"
     reporter.report result.accept interpreter
+    console.timeEnd "interpreter"
 
     $result.textContent = null
     $fragment = createResultFragment document, result.accept(jsVisitor).split "\n"
