@@ -17,11 +17,16 @@ codes = [
   "false  := \\x y.y"
   "and    := \\p q.p q false"
   "or     := \\p q.p true q"
+  "not    := \\p x y.p y x"
   "if     := \\p x y.p x y"
   "isZero := \\n.n (\\x.false) true"
   "pair   := \\a b p.p a b"
   "first  := \\p.p true"
   "second := \\p.p false"
+
+  "cons   := pair"
+  "head   := first"
+  "tail   := second"
 
   "Y      := \\f.(\\x.f (x x)) (\\x.f (x x))"
   "K      := \\x y.x"

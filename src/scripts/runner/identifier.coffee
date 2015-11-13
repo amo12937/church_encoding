@@ -13,6 +13,9 @@ module.exports = class IdentifierRunner extends Runner
     return stdlib.env[@name]?.get().run(thunk) or thunk.get()
   toString: -> @name
 
+IdentifierRunner.create = (interpreter, name) ->
+  runners[name] or Runner.create.call @, interpreter, name
+
 IdentifierRunner.setStdlib = (s) ->
   stdlib = s
 
