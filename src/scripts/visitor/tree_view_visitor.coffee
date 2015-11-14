@@ -44,4 +44,10 @@ exports.create = (reporter, tab = "  ") ->
   visit[AST.IDENTIFIER] = (node) ->
     puts node.name
 
+  visit[AST.NUMBER.NATURAL] = (node) ->
+    puts node.value
+
+  visit[AST.STRING] = (node) ->
+    puts node.value
+
   return self

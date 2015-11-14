@@ -10,8 +10,11 @@ exports.tokenize = (code) ->
   column = 0
   brackets = []
 
-  addToken = (tag, value, length = value.length) ->
-    token = {tag, value, line, column}
+  addToken = (tag, value, length = value.length, token = {}) ->
+    token.tag = tag
+    token.value = value
+    token.line = line
+    token.column = column
     tokens.push token
     return length
 
@@ -37,6 +40,7 @@ exports.tokenize = (code) ->
                literalToken(context)       or
                identifierToken(context)    or
                naturalNumberToken(context) or
+               stringToken(context)        or
                errorToken(context)
     i += consumed
     
@@ -103,22 +107,26 @@ literalToken = (c) ->
 IDENTIFIER = /^(?:[_a-zA-Z]\w*|[!$%&*+/<=>?@^|\-~]+)/
 identifierToken = (c) ->
   return 0 unless match = c.chunk.match IDENTIFIER
-  c.addToken TOKEN.IDENTIFIER, match[0]
-  return match[0].length
+  return c.addToken TOKEN.IDENTIFIER, match[0]
 
 # Natural Number
 NATURAL_NUMBER = /^(?:0|[1-9]\d*)(?![_a-zA-Z])/
 naturalNumberToken = (c) ->
   return 0 unless match = c.chunk.match NATURAL_NUMBER
-  c.addToken TOKEN.NUMBER.NATURAL, match[0]
-  return match[0].length
+  return c.addToken TOKEN.NUMBER.NATURAL, match[0]
+
+# String
+STRING = /^(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/
+stringToken = (c) ->
+  return 0 unless match = c.chunk.match STRING
+  s = match[0]
+  return c.addToken TOKEN.STRING, s, s.length, {text: eval s}
 
 # error
 ERROR = /^\S+/
 errorToken = (c) ->
   return 0 unless match = c.chunk.match ERROR
-  c.addToken TOKEN.ERROR.UNKNOWN_TOKEN, match[0]
-  return match[0].length
+  return c.addToken TOKEN.ERROR.UNKNOWN_TOKEN, match[0]
 
 updateLocation = (l, c, chunk, offset) ->
   return [0, 0] if offset is 0

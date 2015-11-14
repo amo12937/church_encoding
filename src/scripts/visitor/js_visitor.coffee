@@ -28,4 +28,10 @@ exports.create = ->
   visit[AST.IDENTIFIER] = (node) ->
     normalizeIdentifier node.name
 
+  visit[AST.NUMBER.NATURAL] = (node) ->
+    normalizeIdentifier "#{node.value}"
+
+  visit[AST.STRING] = (node) ->
+    node.value
+
   return self

@@ -11,4 +11,5 @@ module.exports = prefixedKV "AST", {
   NUMBER: {
     "NATURAL"
   }
+  "STRING"
 }

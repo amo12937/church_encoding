@@ -6,12 +6,15 @@
 # <expr>               ::= "(" <application> ")"
 #                       |  <lambda_abstraction>
 #                       |  <definition>
-#                       |  <identifier>
-#                       |  <natural_number>
+#                       |  <constant>
 # <lambda_abstraction> ::= "\" <identifier>+ "." <application>
 # <definition>         ::= <identifier> ":=" <application>
+# <constant>           ::= <identifier>
+#                       |  <natural_number>
+#                       |  <string>
 # <identifier>         ::= /^\w(?:\w|\d)+$/
 # <natural_number>     ::= /^(?:0|[1-9]\d*)$/
+# <string>             ::= /^(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/
 
 
 TOKEN = require "TOKEN"
@@ -54,7 +57,7 @@ parseExpr = (lexer) ->
   return parseApplicationWithBrackets(lexer) or
     parseLambdaAbstraction(lexer) or
     parseDefinition(lexer) or
-    parseIdentifier(lexer)
+    parseConstant(lexer)
 
 parseApplicationWithBrackets = (lexer) ->
   rewind = lexer.memento()
@@ -97,12 +100,13 @@ parseDefinition = (lexer) ->
   return definitionNode idToken.value, body if body?
   rewind()
 
-parseIdentifier = (lexer) ->
+parseConstant = (lexer) ->
   rewind = lexer.memento()
   token = lexer.next()
   switch token.tag
-    when TOKEN.IDENTIFIER then return identifierNode token.value
+    when TOKEN.IDENTIFIER     then return identifierNode token.value
     when TOKEN.NUMBER.NATURAL then return naturalNumberNode token.value
+    when TOKEN.STRING         then return stringNode token.value, token.text
     else rewind()
 
 # nodes
@@ -140,5 +144,11 @@ exports.identifierNode = identifierNode = (name) ->
 exports.naturalNumberNode = naturalNumberNode = (value) ->
   tag: AST.NUMBER.NATURAL
   value: +value
+  accept: acceptor
+
+exports.stringNode = stringNode = (value, text) ->
+  tag: AST.STRING
+  value: value
+  text: text
   accept: acceptor
 

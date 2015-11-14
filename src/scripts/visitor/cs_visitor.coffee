@@ -30,4 +30,7 @@ exports.create = ->
   visit[AST.NUMBER.NATURAL] = (node) ->
     "$_#{node.value}"
 
+  visit[AST.STRING] = (node) ->
+    node.value
+
   return self

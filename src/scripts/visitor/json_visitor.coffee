@@ -24,4 +24,10 @@ exports.create = ->
   visit[AST.IDENTIFIER] = (node) ->
     node.name
 
+  visit[AST.NUMBER.NATURAL] = (node) ->
+    node.value
+
+  visit[AST.STRING] = (node) ->
+    node.value
+
   return self

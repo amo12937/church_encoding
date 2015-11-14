@@ -12,6 +12,7 @@ module.exports = prefixedKV "TOKEN", {
   NUMBER: {
     "NATURAL"
   }
+  "STRING"
   "LINE_BREAK"
   "INDENT"
   "EOF"

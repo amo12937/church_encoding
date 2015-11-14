@@ -10,6 +10,7 @@ LambdaAbstractionRunner = require "runner/lambda_abstraction"
 DefinitionRunner = require "runner/definition"
 IdentifierRunner = require "runner/identifier"
 NumberRunner = require "runner/number"
+StringRunner = require "runner/string"
 
 exports.create = createInterpreter = (env = envManager.getGlobal()) ->
   visit = {}
@@ -36,5 +37,8 @@ exports.create = createInterpreter = (env = envManager.getGlobal()) ->
 
   visit[AST.NUMBER.NATURAL] = (node) ->
     return NumberRunner.create self, node.value
+
+  visit[AST.STRING] = (node) ->
+    return StringRunner.create self, node.text
 
   return self
