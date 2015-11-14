@@ -1,5 +1,6 @@
 $code-font-size: 14px;
-$code-padding: 2px;
+$code-deco-padding: 0 ($code-font-size / 2) 0 0;
+$code-input-padding: 2px;
 
 body {
   margin: 10px;

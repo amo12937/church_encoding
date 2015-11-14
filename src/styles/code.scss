@@ -4,3 +4,16 @@
   line-height: 1.2;
 }
 
+.ce-out-code {
+  &:before {
+    content: ">";
+    padding: $code-deco-padding;
+  }
+}
+
+.ce-out-result {
+  &:before {
+    content: "=";
+    padding: $code-deco-padding;
+  }
+}

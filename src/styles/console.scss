@@ -6,16 +6,25 @@
   .ce-console-result {
     display: flex;
     flex-direction: column;
-    align-items: stretch;
     justify-content: flex-end;
 
     flex-basis: 100%;
-    margin: 0 0 10px;
-    padding: 0 0 5px $code-font-size;
+    overflow: auto;
+    padding: 0 0 5px;
     border-bottom: 2px solid #000;
+    margin: 0 0 10px;
 
-    p {
-      margin: $code-padding;
+    .ce-console-result-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-end;
+  
+      height: auto;
+  
+      p {
+        margin: $code-input-padding $code-input-padding $code-input-padding 0;
+      }
     }
   }
 
@@ -25,16 +34,16 @@
     width: 100%;
 
     .ce-console-input-mark {
-      width: $code-font-size;
-      padding: $code-padding 0;
+      padding: $code-input-padding 0;
       &:before {
         content: ">";
+        padding: $code-deco-padding;
       }
     }
 
     textarea {
       margin: 0;
-      padding: $code-padding;
+      padding: $code-input-padding;
       width: 100%;
       border: 0;
 
