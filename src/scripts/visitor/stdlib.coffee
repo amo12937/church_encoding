@@ -27,13 +27,14 @@ codes = [
   "cons   := pair"
   "head   := first"
   "tail   := second"
+  "list   := Y (\\f A m.isnil m (A m) (f (\\x.A (cons m x)))) (\\u.u)"
 
   "Y      := \\f.(\\x.f (x x)) (\\x.f (x x))"
   "K      := \\x y.x"
   "S      := \\x y z.x z (y z)"
   "I      := \\x.x"
   "X      := \\x.x S K"
-  "fact   := \\f n.if (isZero n) 1 (* n (f (pred n)))"
+  "fact   := Y (\\f r n.isZero n r (f (* r n) (pred n))) 1"
 ]
 
 parser.parse(tokenizer.tokenize codes.join "\n").accept stdlib
