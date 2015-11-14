@@ -9,7 +9,7 @@ chai.use sinonChai
 AST = "AST"
 tokenizer = require "tokenizer"
 parser = require "parser"
-visitorProvider = require "visitor/cs_visitor"
+visitorProvider = require "visitor/short_visitor"
 visitor = visitorProvider.create()
 examples = require "examples"
 

@@ -50,28 +50,29 @@ examples = [
   [21, "1_34", [t(TOKEN.ERROR.UNKNOWN_TOKEN, "1_34", 0, 0), eof(0, 4)]]
   [22, "h0ge", [t(TOKEN.IDENTIFIER, "h0ge", 0, 0), eof(0, 4)]]
   [23, "____", [t(TOKEN.IDENTIFIER, "____", 0, 0), eof(0, 4)]]
-  [24, "~!@#$%^&*-+={}[]|:;\"'<>?./", [
-    t(TOKEN.ERROR.UNKNOWN_TOKEN, "~!@#$%^&*-+={}[]|:;\"'<>?./", 0, 0)
-    eof(0, 26)
-  ]]
-  [25, "hoge fuga", [
+  [24, "hoge fuga", [
     t(TOKEN.IDENTIFIER, "hoge", 0, 0)
     t(TOKEN.IDENTIFIER, "fuga", 0, 5)
     eof(0, 9)
   ]]
-  [26, "hoge\nfuga", [
+  [25, "hoge\nfuga", [
     t(TOKEN.IDENTIFIER, "hoge", 0, 0)
     t(TOKEN.LINE_BREAK, "\n", 0, 4)
     t(TOKEN.IDENTIFIER, "fuga", 1, 0)
     eof(1, 4)
   ]]
-  [27, "a := b", [
+  [26, "a := b", [
     t(TOKEN.IDENTIFIER, "a", 0, 0)
     t(TOKEN.DEF_OP, ":=", 0, 2)
     t(TOKEN.IDENTIFIER, "b", 0, 5)
     eof(0, 6)
   ]]
 ]
+
+ex =
+  symbol:
+    ok: "!$%&*+/<=>?@^|-~"
+    ng: "[](){},.#\\'\";:"
 
 describe "tokenizer", ->
   it "should have tokenize function", ->
@@ -82,4 +83,17 @@ describe "tokenizer", ->
       lexer = tokenizer.tokenize code
       for expected in tokens
         c lexer.next(), expected
+
+  for s in ex.symbol.ok
+    it "should compile church encoding[#{s}]", do (ss = s) -> ->
+      lexer = tokenizer.tokenize ss
+      c lexer.next(), t(TOKEN.IDENTIFIER, ss, 0, 0)
+      c lexer.next(), eof(0, 1)
+
+  for s in ex.symbol.ng
+    it "should not compile church encoding[#{s}]", do (ss = s) -> ->
+      lexer = tokenizer.tokenize ss
+      expect(lexer.next().tag).not.to.be.equal TOKEN.IDENTIFIER
+      c lexer.next(), eof(0, 1)
+       
 
