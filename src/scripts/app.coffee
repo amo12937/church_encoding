@@ -2,31 +2,15 @@
 
 tokenizer = require "tokenizer"
 parser = require "parser"
-visitorProvider = require "visitor/tree_view_visitor"
-jsVisitorProvider = require "visitor/js_visitor"
-toStringVisitorProvider = require "visitor/to_string_visitor"
 interpreterProvider = require "visitor/interpreter"
-examplesAppender = require "views/append_examples"
 require "runner/reserved"
 
 reporter =
   report: console.log.bind console
 
-visitor = visitorProvider.create reporter
-jsVisitor = jsVisitorProvider.create()
-toStringVisitor = toStringVisitorProvider.create()
 interpreter = interpreterProvider.create()
 
-createResultFragment = (d, results) ->
-  $fragment = d.createDocumentFragment()
-  results.forEach (result) ->
-    $p = d.createElement "p"
-    $p.textContent = result
-    $fragment.appendChild $p
-  return $fragment
-
 window.addEventListener "load", ->
-  $examples = document.getElementById "examples"
   $input = document.getElementById "input"
   $result = document.getElementById "result"
   compile = (code) ->
@@ -38,23 +22,9 @@ window.addEventListener "load", ->
     result = parser.parse lexer
     console.timeEnd "parser"
 
-#    result.accept visitor
-#    reporter.report result.accept toStringVisitor
     console.time "interpreter"
     reporter.report result.accept interpreter
     console.timeEnd "interpreter"
-
-    $result.textContent = null
-    $fragment = createResultFragment document, result.accept(jsVisitor).split "\n"
-    $result.appendChild $fragment
-
-  do ->
-    seed = $examples.getAttribute "data-seed"
-    key = $examples.getAttribute "data-key"
-    $fragment = examplesAppender.createFragment document, seed, key, (example) ->
-      $input.value = "#{($input.value or "").trim()}\n#{example}".trim()
-      compile $input.value
-    $examples.appendChild $fragment
 
   $input.addEventListener "change", ->
     compile $input.value

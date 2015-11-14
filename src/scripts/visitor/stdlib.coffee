@@ -34,9 +34,7 @@ codes = [
   "S      := \\x y z.x z (y z)"
   "I      := \\x.x"
   "X      := \\x.x S K"
-  "fact   := Y (\\f r n.isZero n r (f (* r n) (pred n))) 1"
 ]
 
 parser.parse(tokenizer.tokenize codes.join "\n").accept stdlib
-
 

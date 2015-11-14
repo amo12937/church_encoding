@@ -1,6 +1,6 @@
-pre, code, var, samp, kbd, .code {
+.ce-code {
   font-family: Consolas, 'Courier New', Courier, Monaco, monospace;
-  font-size: 14px;
+  font-size: $code-font-size;
   line-height: 1.2;
 }
 
