@@ -20,14 +20,16 @@
 TOKEN = require "TOKEN"
 AST = require "AST"
 
-exports.parse = (lexer) -> parseMultiline lexer
+exports.parse = (lexer, errors) -> parseMultiline lexer, errors
 
-parseMultiline = (lexer) ->
+makeError = (name, token) -> {name, token}
+
+parseMultiline = (lexer, errors) ->
   rewind = lexer.memento()
   rewindInner = lexer.memento()
   apps = []
   loop
-    if app = parseApplication lexer
+    if app = parseApplication lexer, errors
       apps.push app
 
     rewindInner = lexer.memento
@@ -37,14 +39,14 @@ parseMultiline = (lexer) ->
     break
   return listNode apps
 
-parseApplication = (lexer) ->
+parseApplication = (lexer, errors) ->
   rewind = lexer.memento()
   rewindInner = lexer.memento()
 
   exprs = []
   loop
     rewindInner = lexer.memento()
-    break unless expr = parseExpr lexer
+    break unless expr = parseExpr lexer, errors
     exprs.push expr
 
   rewindInner()
@@ -53,23 +55,26 @@ parseApplication = (lexer) ->
   app = applicationNode app, expr for expr in others
   return app
 
-parseExpr = (lexer) ->
-  return parseApplicationWithBrackets(lexer) or
-    parseLambdaAbstraction(lexer) or
-    parseDefinition(lexer) or
-    parseConstant(lexer)
+parseExpr = (lexer, errors) ->
+  return parseApplicationWithBrackets(lexer, errors) or
+    parseLambdaAbstraction(lexer, errors) or
+    parseDefinition(lexer, errors) or
+    parseConstant(lexer, errors)
 
-parseApplicationWithBrackets = (lexer) ->
+parseApplicationWithBrackets = (lexer, errors) ->
   rewind = lexer.memento()
-  token = lexer.next()
-  return rewind() unless token.tag is TOKEN.BRACKETS_OPEN
-  app = parseApplication lexer
-  return rewind() unless app?
-  token = lexer.next()
-  return rewind() unless token.tag is TOKEN.BRACKETS_CLOSE
-  return app
+  oToken = lexer.next()
+  return rewind() unless oToken.tag is TOKEN.BRACKETS_OPEN
+  app = parseApplication lexer, errors
+  unless app?
+    errors.push makeError AST.ERROR.EXPECT.BRACKETS.TO_HAVE_BODY, oToken
+    return rewind()
+  cToken = lexer.next()
+  return app if cToken.tag is TOKEN.BRACKETS_CLOSE
+  errors.push makeError AST.ERROR.EXPECT.BRACKETS.TO_HAVE_CLOSER, oToken
+  rewind()
 
-parseLambdaAbstraction = (lexer) ->
+parseLambdaAbstraction = (lexer, errors) ->
   rewind = lexer.memento()
   token = lexer.next()
   return rewind() unless token.tag is TOKEN.LAMBDA
@@ -79,28 +84,38 @@ parseLambdaAbstraction = (lexer) ->
   while token.tag is TOKEN.IDENTIFIER
     argTokens.push token
     token = lexer.next()
-  return rewind() if argTokens.length is 0 or token.tag isnt TOKEN.LAMBDA_BODY
+  
+  if argTokens.length is 0
+    errors.push makeError AST.ERROR.EXPECT.LAMBDA.TO_HAVE_AN_ARGUMENT, token
+    return rewind()
+  if token.tag isnt TOKEN.LAMBDA_BODY
+    errors.push makeError AST.ERROR.EXPECT.LAMBDA.TO_HAVE_BODY, token
+    return rewind()
 
-  body = parseApplication lexer
-  return rewind() unless body?
+  body = parseApplication lexer, errors
+  unless body?
+    errors.push makeError AST.ERROR.EXPECT.LAMBDA.TO_HAVE_BODY, lexer.next()
+    return rewind()
   lmda = body
   for argToken in argTokens by -1
     lmda = lambdaAbstractionNode argToken.value, lmda
   return lmda
 
-parseDefinition = (lexer) ->
+parseDefinition = (lexer, errors) ->
   rewind = lexer.memento()
 
   idToken = lexer.next()
   return rewind() unless idToken.tag is TOKEN.IDENTIFIER
   token = lexer.next()
   return rewind() unless token.tag is TOKEN.DEF_OP
-  body = parseApplication lexer
+  body = parseApplication lexer, errors
 
   return definitionNode idToken.value, body if body?
+
+  errors.push makeError AST.ERROR.EXPECT.DEFINITION.TO_HAVE_BODY, token
   rewind()
 
-parseConstant = (lexer) ->
+parseConstant = (lexer, errors) ->
   rewind = lexer.memento()
   token = lexer.next()
   switch token.tag

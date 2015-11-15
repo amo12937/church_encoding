@@ -55,5 +55,5 @@ codes = [
   "fact   := Y (\\f r n.isZero n r (f (* r n) (pred n))) 1"
 ]
 
-parser.parse(tokenizer.tokenize codes.join "\n").accept stdlib
+parser.parse(tokenizer.tokenize(codes.join("\n"), []), []).accept stdlib
 

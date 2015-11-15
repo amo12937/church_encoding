@@ -3,19 +3,26 @@
 TOKEN = require "TOKEN"
 mementoContainer = require "memento_container"
 
-exports.tokenize = (code) ->
+exports.tokenize = (code, errors) ->
   code = cleanCode code
   tokens = []
   line = 0
   column = 0
   brackets = []
 
-  addToken = (tag, value, length = value.length, token = {}) ->
+  makeToken = (tag, value, token = {}) ->
     token.tag = tag
     token.value = value
     token.line = line
     token.column = column
-    tokens.push token
+    return token
+
+  addToken = (tag, value, length = value.length, token = {}) ->
+    tokens.push makeToken tag, value, token
+    return length
+
+  addError = (tag, value, length = value.length, token = {}) ->
+    errors.push makeToken tag, value, token
     return length
 
   pushBracket = (b) -> brackets.push b
@@ -27,6 +34,7 @@ exports.tokenize = (code) ->
     chunk:    code
     parenthesisStack: []
     addToken: addToken
+    addError: addError
     brackets:
       push: pushBracket
       pop: popBracket
@@ -94,7 +102,7 @@ literalToken = (c) ->
     return c.addToken t.token, v
   
   if (t = LITERAL_CLOSER[v])?
-    return c.addToken TOKEN.ERROR.UNMATCHED_BRACKET, v unless c.brackets.latest() is v
+    return c.addError TOKEN.ERROR.UNMATCHED_BRACKET, v unless c.brackets.latest() is v
     c.brackets.pop()
     return c.addToken t, v
 
@@ -126,7 +134,7 @@ stringToken = (c) ->
 ERROR = /^\S+/
 errorToken = (c) ->
   return 0 unless match = c.chunk.match ERROR
-  return c.addToken TOKEN.ERROR.UNKNOWN_TOKEN, match[0]
+  return c.addError TOKEN.ERROR.UNKNOWN_TOKEN, match[0]
 
 updateLocation = (l, c, chunk, offset) ->
   return [0, 0] if offset is 0

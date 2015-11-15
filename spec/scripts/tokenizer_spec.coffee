@@ -32,7 +32,6 @@ examples = [
   [11, "\\", [t(TOKEN.LAMBDA, "\\", 0, 0), eof(0, 1)]]
   [12, ".", [t(TOKEN.LAMBDA_BODY, ".", 0, 0), eof(0, 1)]]
   [13, "(", [t(TOKEN.BRACKETS_OPEN, "(", 0, 0), eof(0, 1)]]
-  [14, ")", [t(TOKEN.ERROR.UNMATCHED_BRACKET, ")", 0, 0), eof(0, 1)]]
   [15, "()", [
     t(TOKEN.BRACKETS_OPEN, "(", 0, 0)
     t(TOKEN.BRACKETS_CLOSE, ")", 0, 1)
@@ -47,7 +46,6 @@ examples = [
   [18, "hoge", [t(TOKEN.IDENTIFIER, "hoge", 0, 0), eof(0, 4)]]
   [19, "h_ge", [t(TOKEN.IDENTIFIER, "h_ge", 0, 0), eof(0, 4)]]
   [20, "1234", [t(TOKEN.NUMBER.NATURAL, "1234", 0, 0), eof(0, 4)]]
-  [21, "1_34", [t(TOKEN.ERROR.UNKNOWN_TOKEN, "1_34", 0, 0), eof(0, 4)]]
   [22, "h0ge", [t(TOKEN.IDENTIFIER, "h0ge", 0, 0), eof(0, 4)]]
   [23, "____", [t(TOKEN.IDENTIFIER, "____", 0, 0), eof(0, 4)]]
   [24, "hoge fuga", [
@@ -72,7 +70,10 @@ examples = [
 ex =
   symbol:
     ok: "!$%&*+/<=>?@^|-~"
-    ng: "[](){},.#\\'\";:"
+    ng: "(.\\#"
+    error:
+      ut: "[]{},'\";:"
+      ub: ")"
 
 describe "tokenizer", ->
   it "should have tokenize function", ->
@@ -80,20 +81,35 @@ describe "tokenizer", ->
 
   examples.forEach ([key, code, tokens]) ->
     it "should compile church encoding[#{key}]", ->
-      lexer = tokenizer.tokenize code
+      lexer = tokenizer.tokenize code, []
       for expected in tokens
         c lexer.next(), expected
 
   for s in ex.symbol.ok
     it "should compile church encoding[#{s}]", do (ss = s) -> ->
-      lexer = tokenizer.tokenize ss
+      lexer = tokenizer.tokenize ss, []
       c lexer.next(), t(TOKEN.IDENTIFIER, ss, 0, 0)
       c lexer.next(), eof(0, 1)
 
   for s in ex.symbol.ng
     it "should not compile church encoding[#{s}]", do (ss = s) -> ->
-      lexer = tokenizer.tokenize ss
+      lexer = tokenizer.tokenize ss, []
       expect(lexer.next().tag).not.to.be.equal TOKEN.IDENTIFIER
       c lexer.next(), eof(0, 1)
        
+  for s in ex.symbol.error.ut
+    it "should not compile church encoding[#{s}]", do (ss = s) -> ->
+      errors = []
+      lexer = tokenizer.tokenize ss, errors
+      expect(errors.length).to.be.equal 1
+      expect(errors[0].tag).to.be.equal TOKEN.ERROR.UNKNOWN_TOKEN
+      c lexer.next(), eof(0, 1)
+
+  for s in ex.symbol.error.ub
+    it "should not compile church encoding[#{s}]", do (ss = s) -> ->
+      errors = []
+      lexer = tokenizer.tokenize ss, errors
+      expect(errors.length).to.be.equal 1
+      expect(errors[0].tag).to.be.equal TOKEN.ERROR.UNMATCHED_BRACKET
+      c lexer.next(), eof(0, 1)
 
