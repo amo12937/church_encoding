@@ -1,35 +1,34 @@
 "use strict"
 
 AST = require "AST"
+Visitor = require "visitor/visitor"
 
 separator = (l, r) ->
   return "" if l[l.length - 1] in ")}]" or r[0] in "({["
   return " "
 
-exports.create = ->
-  visit = {}
-  self = {visit}
+module.exports = class ShortVisitor extends Visitor
 
-  visit[AST.LIST] = (node) ->
-    node.exprs.map((expr) -> expr.accept self).join ""
+ShortVisitor.registerVisit AST.LIST, (node) ->
+  self = @
+  node.exprs.map((expr) -> expr.accept self).join ""
 
-  visit[AST.APPLICATION] = (node) ->
-    l = node.left.accept self
-    r = node.right.accept self
-    return "(#{l}#{separator l, r}#{r})"
+ShortVisitor.registerVisit AST.APPLICATION, (node) ->
+  l = node.left.accept @
+  r = node.right.accept @
+  return "(#{l}#{separator l, r}#{r})"
 
-  visit[AST.LAMBDA_ABSTRACTION] = (node) ->
-    l = node.arg
-    r = node.body.accept self
-    return "{#{l}#{separator l, r}#{r}}"
+ShortVisitor.registerVisit AST.LAMBDA_ABSTRACTION, (node) ->
+  l = node.arg
+  r = node.body.accept @
+  return "{#{l}#{separator l, r}#{r}}"
 
-  visit[AST.DEFINITION] = (node) ->
-    l = node.name
-    r = node.body.accept self
-    return "[#{l}#{separator l, r}#{r}]"
+ShortVisitor.registerVisit AST.DEFINITION, (node) ->
+  l = node.name
+  r = node.body.accept @
+  return "[#{l}#{separator l, r}#{r}]"
 
-  visit[AST.IDENTIFIER] = (node) -> node.name
-  visit[AST.NUMBER.NATURAL] = (node) -> "#{node.value}"
-  visit[AST.STRING] = (node) -> node.value
+ShortVisitor.registerVisit AST.IDENTIFIER, (node) -> node.name
+ShortVisitor.registerVisit AST.NUMBER.NATURAL, (node) -> "#{node.value}"
+ShortVisitor.registerVisit AST.STRING, (node) -> node.value
 
-  return self

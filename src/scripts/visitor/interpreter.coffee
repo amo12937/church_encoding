@@ -6,39 +6,37 @@ EnvManager = require "env_manager"
 CREATE_CHILD_KEY = EnvManager.CREATE_CHILD_KEY
 envManager = EnvManager.create()
 
-LambdaAbstractionRunner = require "runner/lambda_abstraction"
-DefinitionRunner = require "runner/definition"
-IdentifierRunner = require "runner/identifier"
-NumberRunner = require "runner/number"
-StringRunner = require "runner/string"
+Visitor = require "visitor/visitor"
+runnerFactory = require "runner/factory"
 
-exports.create = createInterpreter = (env = envManager.getGlobal()) ->
-  visit = {}
-  self =
-    env: env
-    visit: visit
-    createChild: -> createInterpreter env[CREATE_CHILD_KEY]()
+module.exports = class Interpreter extends Visitor
+  constructor: (@env = envManager.getGlobal()) -> undefined
+  createChild: ->
+    new Interpreter @env[CREATE_CHILD_KEY]()
 
-  visit[AST.LIST] = (node) ->
-    return node.exprs.map((expr) -> "#{expr.accept self}").join "\n"
+Interpreter.create = (env = envManager.getGlobal()) ->
+  Visitor.create.call @, env
 
-  visit[AST.APPLICATION] = (node) ->
-    node.left.accept(self).run FutureEval.create node.right, self
+Interpreter.registerVisit AST.LIST, (node) ->
+  self = @
+  return node.exprs.map((expr) -> "#{expr.accept self}").join "\n"
 
-  visit[AST.LAMBDA_ABSTRACTION] = (node) ->
-    LambdaAbstractionRunner.create self, node.arg, node.body
+Interpreter.registerVisit AST.APPLICATION, (node) ->
+  node.left.accept(@).run FutureEval.create node.right, @
 
-  visit[AST.DEFINITION] = (node) ->
-    env[node.name] = FutureEval.create node.body, self
-    return DefinitionRunner.create self, node.name, node.body
+Interpreter.registerVisit AST.LAMBDA_ABSTRACTION, (node) ->
+  runnerFactory.create "LAMBDA_ABSTRACTION", @, node.arg, node.body
 
-  visit[AST.IDENTIFIER] = (node) ->
-    return env[node.name]?.get() or IdentifierRunner.create self, node.name
+Interpreter.registerVisit AST.DEFINITION, (node) ->
+  @env[node.name] = FutureEval.create node.body, @
+  runnerFactory.create "DEFINITION", @, node.name, node.body
 
-  visit[AST.NUMBER.NATURAL] = (node) ->
-    return NumberRunner.create self, node.value
+Interpreter.registerVisit AST.IDENTIFIER, (node) ->
+  @env[node.name]?.get() or runnerFactory.create "IDENTIFIER", @, node.name
 
-  visit[AST.STRING] = (node) ->
-    return StringRunner.create self, node.text
+Interpreter.registerVisit AST.NUMBER.NATURAL, (node) ->
+  runnerFactory.create "NUMBER", @, node.value
 
-  return self
+Interpreter.registerVisit AST.STRING, (node) ->
+  runnerFactory.create "STRING", @, node.text
+

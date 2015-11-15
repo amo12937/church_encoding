@@ -1,5 +1,6 @@
 "use strict"
 
+runnerFactory = require("runner/factory")
 Runner = require "runner/runner"
 NumberRunner = require "runner/number"
 FutureEval = require "future_eval"
@@ -20,4 +21,7 @@ module.exports = class StringRunner extends Runner
     )
 
   toString: -> "\"#{@text}\""
+
+runnerFactory.register "STRING", (interpreter, text) ->
+  StringRunner.create interpreter, text
 

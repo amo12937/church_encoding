@@ -1,5 +1,6 @@
 "use strict"
 
+runnerFactory = require("runner/factory")
 Runner = require "runner/runner"
 BradeRunner = require "runner/brade"
 FutureEval = require "future_eval"
@@ -24,4 +25,7 @@ module.exports = class NumberRunner extends Runner
       f.run FutureEval.createWithGetter ->
         NumberRunner.create(i, m).run(fThunk).run(xThunk)
   toString: -> "#{@value}"
+
+runnerFactory.register "NUMBER", (interpreter, value) ->
+  NumberRunner.create interpreter, value
 

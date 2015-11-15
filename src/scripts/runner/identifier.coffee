@@ -1,23 +1,22 @@
 "use strict"
 
+runnerFactory = require("runner/factory")
+stdlib = require "visitor/stdlib"
 Runner = require "runner/runner"
 
-stdlib = null
 runners = {}
 
 module.exports = class IdentifierRunner extends Runner
   constructor: (interpreter, @name) ->
     super interpreter
   run: (thunk) ->
-    return r if runners[@name]? and r = runners[@name].run thunk
-    return stdlib.env[@name]?.get().run(thunk) or thunk.get()
+    return runners[@name]?.run(thunk) or
+      stdlib.env[@name]?.get().run(thunk) or
+      thunk.get()
   toString: -> @name
 
-IdentifierRunner.create = (interpreter, name) ->
-  runners[name] or Runner.create.call @, interpreter, name
-
-IdentifierRunner.setStdlib = (s) ->
-  stdlib = s
+runnerFactory.register "IDENTIFIER", (interpreter, name) ->
+  runners[name] or IdentifierRunner.create interpreter, name
 
 IdentifierRunner.register = (name, runnerProvider) ->
   runners[name] = runnerProvider.create stdlib, name

@@ -6,3 +6,4 @@ module.exports = class Runner
 
 Runner.create = ->
   return new (Function.prototype.bind.apply @, [@, arguments...])
+

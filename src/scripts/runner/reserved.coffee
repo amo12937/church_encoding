@@ -1,8 +1,10 @@
 "use strict"
 
-stdlib = require "visitor/stdlib"
-IdentifierRunner = require "runner/identifier"
-IdentifierRunner.setStdlib stdlib
+require "runner/lambda_abstraction"
+require "runner/definition"
+require "runner/identifier"
+require "runner/number"
+require "runner/string"
 
 require "runner/identifier/succ"
 require "runner/identifier/pred"

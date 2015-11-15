@@ -111,7 +111,7 @@ parseConstant = (lexer) ->
 
 # nodes
 acceptor = (visitor) ->
-  visitor.visit[@tag]? @
+  visitor.visit @
 
 exports.listNode = listNode = (exprs) ->
   tag: AST.LIST

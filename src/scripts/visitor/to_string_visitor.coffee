@@ -1,30 +1,26 @@
 "use strict"
 
 AST = require "AST"
-exports.create = ->
-  visit = {}
-  self = {visit}
+Visitor = require "visitor/visitor"
 
-  visit[AST.LIST] = (node) ->
-    node.exprs.map((expr) -> expr.accept self).join "\n"
+module.exports = class ToStringVisitor extends Visitor
 
-  visit[AST.APPLICATION] = (node) ->
-    "(#{node.left.accept self} #{node.right.accept self})"
+ToStringVisitor.registerVisit AST.LIST, (node) ->
+  self = @
+  node.exprs.map((expr) -> expr.accept self).join "\n"
 
-  visit[AST.LAMBDA_ABSTRACTION] = (node) ->
-    "(\\#{node.arg}.#{node.body.accept self})"
+ToStringVisitor.registerVisit AST.APPLICATION, (node) ->
+  "(#{node.left.accept @} #{node.right.accept @})"
 
-  visit[AST.DEFINITION] = (node) ->
-    "(#{node.name} := #{node.body.accept self})"
+ToStringVisitor.registerVisit AST.LAMBDA_ABSTRACTION, (node) ->
+  "(\\#{node.arg}.#{node.body.accept @})"
 
-  visit[AST.IDENTIFIER] = (node) ->
-    node.name
+ToStringVisitor.registerVisit AST.DEFINITION, (node) ->
+  "(#{node.name} := #{node.body.accept @})"
 
-  visit[AST.NUMBER.NATURAL] = (node) ->
-    node.value
+ToStringVisitor.registerVisit AST.IDENTIFIER, (node) -> node.name
 
-  visit[AST.STRING] = (node) ->
-    node.value
+ToStringVisitor.registerVisit AST.NUMBER.NATURAL, (node) -> node.value
 
-  return self
+ToStringVisitor.registerVisit AST.STRING, (node) -> node.value
 
