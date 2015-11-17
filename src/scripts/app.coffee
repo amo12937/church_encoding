@@ -4,6 +4,7 @@ tokenizer = require "tokenizer"
 parser = require "parser"
 interpreterProvider = require "visitor/interpreter"
 require "runner/reserved"
+CodeHistory = require "code_history"
 
 createFragment = (d, cls, items) ->
   $fragment = d.createDocumentFragment()
@@ -67,12 +68,26 @@ window.addEventListener "load", ->
       reporter.error.report ["RUNTIME_ERROR: #{e.message}"]
     console.timeEnd "[#{i}] interpreter"
 
+  codeHistory = CodeHistory.create([])
+  K =
+    ENTER: 13
+    UP: 38
+    DOWN: 40
+  # $input
+  $input.addEventListener "keydown", (e) ->
+    if e.keyCode is K.UP
+      $input.value = codeHistory.prev $input.value
+    else if e.keyCode is K.DOWN
+      $input.value = codeHistory.next $input.value
+
   $input.addEventListener "keypress", (e) ->
-    return unless e.keyCode is 13
+    return unless e.keyCode is K.ENTER
     return if e.shiftKey
     e.preventDefault()
     s = $input.value.trim()
     return if s is ""
+    $input.value = codeHistory.save $input.value
     compile s
-    $input.value = ""
+
+  $input.focus()
 

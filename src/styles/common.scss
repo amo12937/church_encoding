@@ -2,7 +2,16 @@ $code-font-size: 14px;
 $code-deco-padding: 0 ($code-font-size / 2) 0 0;
 $code-input-padding: 2px;
 
+$background: #000;
+$color: #fff;
+
 body {
   margin: 10px;
-  background: #eee;
+  background: $background;
+  color: $color;
+}
+
+input {
+  background: $background;
+  color: $color;
 }
