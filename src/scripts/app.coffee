@@ -5,6 +5,7 @@ parser = require "parser"
 interpreterProvider = require "visitor/interpreter"
 require "runner/reserved"
 CodeHistory = require "code_history"
+help = require "help"
 
 createFragment = (d, cls, items) ->
   $fragment = d.createDocumentFragment()
@@ -23,11 +24,11 @@ Reporter = (d, $result) ->
     report: (errors) ->
       $result.appendChild createFragment d, "ce-out-error", errors
   code:
-    report: (code) ->
-      $result.appendChild createFragment d, "ce-out-code", code.split "\n"
+    report: (codes) ->
+      $result.appendChild createFragment d, "ce-out-code", codes
   result:
-    report: (result) ->
-      $result.appendChild createFragment d, "ce-out-result", result.split "\n"
+    report: (results) ->
+      $result.appendChild createFragment d, "ce-out-result", results
 
 interpreter = interpreterProvider.create()
 
@@ -39,7 +40,13 @@ window.addEventListener "load", ->
   compile = (code) ->
     i += 1
     
-    reporter.code.report code
+    reporter.code.report code.split "\n"
+
+    [h, k] = code.split " "
+    if h is "help"
+      reporter.result.report help k
+      return
+
     console.log "[#{i}] code ="
     console.log code
     errors = []
@@ -63,7 +70,7 @@ window.addEventListener "load", ->
 
     console.time "[#{i}] interpreter"
     try
-      reporter.result.report pResult.accept interpreter
+      reporter.result.report pResult.accept(interpreter).split "\n"
     catch e
       reporter.error.report ["RUNTIME_ERROR: #{e.message}"]
     console.timeEnd "[#{i}] interpreter"

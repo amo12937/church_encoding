@@ -23,7 +23,7 @@ module.exports = stdlib = Stdlib.create stdlibEnv
 tokenizer = require "tokenizer"
 parser = require "parser"
 
-codes = [
+stdlib.codes = codes = [
   "succ   := \\n f x.f (n f x)"
   "pred   := \\n f x.n (\\g h.h (g f)) (\\u.x) (\\v.v)"
   "+      := \\m n f x.m f (n f x)"
