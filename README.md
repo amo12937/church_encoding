@@ -551,6 +551,504 @@ Y\ fact\ 5 &=& (\lambda f.(\lambda x.f\ (x\ x))\ (\lambda x.f\ (x\ x)))\ fact\ 5
 ```
 
 # 自作言語 Gravel
-# Gravel のトークナイザー
-# Gravel のパーサー
-# Gravel のインタープリター
+Church Encoding は面白そうで、文法が簡単（ラムダ式と適用しかない）なので、これを解釈し実行するインタープリターを作ってみた。  
+言語名は、perl → ruby の流れに乗りペリドットとかにしたかったが宝石名を付けるのは大仰だったので「砂利とかでいいか」と思い砂利の英語を調べたら存外良い響きだったことに由来する。
+
+Gravel の特徴、出来ること、出来ないことは以下のとおり
+
+- CoffeeScript で書いてあり、web 上で実行可能
+    - 1行程度のコードなら 字句解析 1 msec 以下, 構文解析 1 msec 以下, 実行数十〜200 msec 程度
+- Church Encoding からの変更点
+    - 代入構文 := を実装
+    - λの代わりにバックスラッシュ \ をラムダ抽象の開始記号にしている
+- コメントを記述できる
+    - # 一行コメント
+    - #- ブロックコメント -#
+- 評価戦略は遅延評価
+    - ただし、評価値が数値か数値を引数にとる関数の場合は、その引数に当たるラムダ式が数値化どうかを先にチェックしている
+        - 例えば succ N は通常 \f x.f (N f x) と評価され、ラムダ式 f と x の適用を待つが、N が数値（例えば 5）だった場合には計算結果（6）を返す。
+- 未実装（気が向いたら頑張ります）
+    - 入出力周り
+        - コンソール的なのがあるだけで、実行途中で入力を待ったりは出来ない。
+    - モジュール機能
+        - 全部グローバル変数
+    - インポート機能
+        - リロードしたら消える
+    - 負の数、有理数、実数
+        - 自分ピタゴラス学派なんで…
+    - 貧弱な標準ライブラリ
+        - 文字列処理系は殆ど無い
+        - ご自分でお作りくださいというスタンス
+    - などなど
+
+## BNF
+BNF は以下のとおり
+
+```
+S                    ::= (<application> "\n")+
+<application>        ::= <expr>+
+<expr>               ::= "(" <application> ")"
+                       | <lambda_abstraction>
+                       | <definition>
+                       | <constant>
+<lambda_abstraction> ::= "\" <identifier>+ "." <application>
+<definition>         ::= <identifier> ":=" <application>
+<constant>           ::= <identifier>
+                       | <natural_number>
+                       | <string>
+<identifier>         ::= /^(?:[_a-zA-Z]\w*|[!$%&*+/<=>?@^|\-~]+)$/
+<natural_number>     ::= /^(?:0|[1-9]\d*)$/
+<string>             ::= /^(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/
+```
+
+- ソースコードは、適用（`<application>`）の列からなる
+- `<application>` は、ラムダ式（`<expr>`） の列からなる
+- `<expr>` は、以下の4種類のいずれかである
+    - 括弧付けられた適用（`<application>`）
+    - ラムダ抽象（`<lambda_abstraction>`）
+    - 定義式（`<definition>`）
+    - 変数（`<constant>`）
+- `<lambda_abstraction>` は、
+    - はじめに開始記号（`\`）があり
+    - 引数（`<identifier>`）の列があり
+    - 本体の開始記号（`.`）があり
+    - 本体は適用（`<application>`）である
+- `<definition>` は、
+    - 識別子（`<identifier>`）があり、
+    - 本体の開始記号（`:=`）があり、
+    - 本体は適用（`<application>`）である
+- `<constant>` は、次の3種がある
+    - `<identifier>` ... `/^(?:[_a-zA-Z]\w*|[!$%&*+/<=>?@^|\-~]+)$/`
+    - `<natural_number>` ... `/^(?:0|[1-9]\d*)$/`
+    - `<string>` ... `/^(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/`
+
+# Gravel の Lexer
+Lexer（字句解析器）の役割は、文字列であるソースコードをその言語として意味のある単位（トークン）に分解することである。
+
+例えば、以下の CoffeeScript の式：
+
+```coffeescript
+add = (a) -> (b) -> a + b
+```
+
+は、このように分解される：
+
+```coffeescript
+
+[ [ 'IDENTIFIER',
+    'add',
+    { first_line: 0, first_column: 0, last_line: 0, last_column: 2 },
+    variable: true,
+    spaced: true ],
+  [ '=',
+    '=',
+    { first_line: 0, first_column: 4, last_line: 0, last_column: 4 },
+    spaced: true ],
+  [ 'PARAM_START',
+    '(',
+    { first_line: 0, first_column: 6, last_line: 0, last_column: 6 } ],
+  [ 'IDENTIFIER',
+    'a',
+    { first_line: 0, first_column: 7, last_line: 0, last_column: 7 },
+    variable: true ],
+  [ 'PARAM_END',
+    ')',
+    { first_line: 0, first_column: 8, last_line: 0, last_column: 8 },
+    spaced: true ],
+  [ '->',
+    '->',
+    { first_line: 0, first_column: 10, last_line: 0, last_column: 11 },
+    spaced: true ],
+  [ 'INDENT',
+    2,  
+    { first_line: 0, first_column: 11, last_line: 0, last_column: 11 },
+    generated: true,
+    origin: [ '->', '->', [Object], spaced: true ] ],
+  [ 'PARAM_START',
+    '(',
+    { first_line: 0, first_column: 13, last_line: 0, last_column: 13 } ],
+  [ 'IDENTIFIER',
+    'b',
+    { first_line: 0, first_column: 14, last_line: 0, last_column: 14 },
+    variable: true ],
+  [ 'PARAM_END',
+    ')',
+    { first_line: 0, first_column: 15, last_line: 0, last_column: 15 },
+    spaced: true ],
+  [ '->',
+    '->',
+    { first_line: 0, first_column: 17, last_line: 0, last_column: 18 },
+    spaced: true ],
+  [ 'INDENT',
+    2,  
+    { first_line: 0, first_column: 18, last_line: 0, last_column: 18 },
+    generated: true,
+    origin: [ '->', '->', [Object], spaced: true ] ],
+  [ 'IDENTIFIER',
+    'a',
+    { first_line: 0, first_column: 20, last_line: 0, last_column: 20 },
+    variable: true,
+    spaced: true ],
+  [ '+',
+    '+',
+    { first_line: 0, first_column: 22, last_line: 0, last_column: 22 },
+    spaced: true ],
+  [ 'IDENTIFIER',
+    'b',
+    { first_line: 0, first_column: 24, last_line: 0, last_column: 24 },
+    variable: true ],
+  [ 'OUTDENT',
+    2,  
+    { first_line: 0, first_column: 24, last_line: 0, last_column: 24 },
+    generated: true,
+    origin: [ '->', '->', [Object], spaced: true ] ],
+  [ 'OUTDENT',
+    2,  
+    { first_line: 0, first_column: 24, last_line: 0, last_column: 24 },
+    generated: true,
+    origin: [ '->', '->', [Object], spaced: true ] ],
+  [ 'TERMINATOR',
+    '\n',
+    { first_line: 0, first_column: 25, last_line: 0, last_column: 25 } ] ]
+```
+
+括弧が正しく閉じられていなかったり、インデントが合っていなかったり、コメントが正しく閉じられて居なかったりすると、ここでエラーとなる。
+
+Gravel では、[CoffeeScriptのLexer](https://github.com/jashkenas/coffeescript/blob/1.10.0/src/lexer.coffee) を参考に作っている。
+
+## 大まかな流れ
+コードを先頭から読んでいき、読み終わった文字列をカウントしていく。
+
+https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/tokenizer.coffee#L44-L52
+
+コメントや空白は文字数としてはカウントするがトークンとしてはカウントしない。
+予約語や識別子は文字数としてカウントし、かつトークンとしてもカウントしていく。
+
+```coffeescript
+  while context.chunk = code[i..]
+    consumed = commentToken(context)       or
+               whitespaceToken(context)    or
+               lineToken(context)          or
+               literalToken(context)       or
+               identifierToken(context)    or
+               naturalNumberToken(context) or
+               stringToken(context)        or
+               errorToken(context)
+```
+
+- [commentToken](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/tokenizer.coffee#L64-L69)
+    - # 一行コメント や #- ブロックコメント -# を判定し、これらを除去する。
+- [whitespaceToken](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/tokenizer.coffee#L72-L75)
+    - 改行を除く空白を判定し、これらを除去する。
+- [lineToken](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/tokenizer.coffee#L77-L81)
+    - 改行を判定する。この際、
+        - 閉じられていない括弧がある場合は次の行も一つの式として認識する
+        - すべての括弧が閉じられていた場合は、式の終了をあらわす TOKEN.LINE_BREAK を差し挟む
+- [literalToken](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/tokenizer.coffee#L84-L112)
+    - literal とか言っておいて演算子や括弧等を判定する（そのうちリネームします m(__)m）。Gravel の 演算子は以下のとおり
+        - `\` ... `LAMBDA`
+        - `.` ... `LAMBDA_BODY`
+        - `(` ... `BRACKETS_OPEN`
+        - `)` ... `BRACKETS_CLOSE`
+        - `:=` ... `DEF_OP`
+    - 括弧の対応が取れていない場合ここで TOKEN.ERROR.UNMATCHED_BRACKET エラーが出る。
+- [identifierToken](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/tokenizer.coffee#L115-L118)
+    - 識別子を判定する
+    - Gravel の識別子は、文字列 `/[_a-zA-Z]\w*/` と いくつかの記号列 /[!$%&*+/<=>?@^|\-~]+/ で、文字と記号が混ざったものは認識されない。
+    - 例
+        - add, mul, Y...
+        - +, *, =, ...
+- [naturalNumberToken](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/tokenizer.coffee#L121-L124)
+    - 自然数リテラルに反応する
+    - 0 は自然数
+- [stringToken](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/tokenizer.coffee#L127-L131)
+    - 文字列リテラルに反応する
+- [errorToken](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/tokenizer.coffee#L134-L137)
+    - 上記のどれにもマッチしない文字列は、空白までをひとまとめにして TOKEN.ERROR.UNKNOWN_TOKEN を出す。
+
+tokenizer.tokenize によってソースコードの文字列が読み込まれ、トークンの配列（正確には rewind 出来る iterator オブジェクト）を返す。このオブジェクトはパーサーに渡され、構文解析される。
+
+# Gravel のParser
+Parser（構文解析器）の役割は、トークンの列が言語の文法に沿って並んでいるかをチェックするとともに、抽象構文木と呼ばれるツリー構造のオブジェクトを生成する。
+
+## parse
+Gravel では、BNF と対応するように parser を組み立てている。
+
+```
+S                    ::= (<application> "\n")+
+<application>        ::= <expr>+
+<expr>               ::= "(" <application> ")"
+                       | <lambda_abstraction>
+                       | <definition>
+                       | <constant>
+<lambda_abstraction> ::= "\" <identifier>+ "." <application>
+<definition>         ::= <identifier> ":=" <application>
+<constant>           ::= <identifier>
+                       | <natural_number>
+                       | <string>
+<identifier>         ::= /^(?:[_a-zA-Z]\w*|[!$%&*+/<=>?@^|\-~]+)$/
+<natural_number>     ::= /^(?:0|[1-9]\d*)$/
+<string>             ::= /^(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/
+```
+
+### ソースコードは、適用（`<application>`）の列からなる
+[parseMultiline](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L27-L40)
+
+- ループの中で parseApplication を呼び出し、適用リストに加えていく
+- TOKEN.LINE_BREAK があれば、パースを続ける
+- TOKEN.LINE_BREAK が無い = コードが終了したので、適用リストを返却する。
+
+### `<application>` は、ラムダ式（`<expr>`） の列からなる
+[parseApplication](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L42-L56)
+
+- ループの中で parseExpr を呼び出し、ラムダ式リストに加えていく
+- parseExpr が null を返した時点でループを抜ける
+- ラムダ式リストが空の場合、parseApplication 自体は null を返す
+- ラムダ式が 1 つだけの場合、それを返す
+- ラムダ式が 2 つ以上の場合、例えば [a, b, c, d] の場合、[[[a, b], c], d] と、2分木にし、これを適用として返す。
+
+### `<expr>` は、以下の4種類のいずれかである
+- 括弧付けられた適用（`<application>`）
+- ラムダ抽象（`<lambda_abstraction>`）
+- 定義式（`<definition>`）
+- 変数（`<constant>`）
+
+[parseExpr](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L58-L62)
+
+- そのまんま、parseApplicationWithBrackets, parseLambdaAbstraction, parseDefinition, parseConstant のいずれかを返す
+
+### 括弧付けられた適用
+[parseApplicationWithBrackets](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L64-L75)
+
+- トークンを一つ取り出し、TOKEN.BRACKETS_OPEN かどうかを判定する
+    - false なら、lexer を巻き戻して null を返却する（つまり、括弧付き適用はなかったということ）
+- parseApplication を呼び出し、適用があるかどうかを判定する
+    - 無かった場合、「括弧はあるのに適用が無かった」として、エラーを登録する
+    - lexer を巻き戻し、null を返却する
+- トークンを一つ取り出し、TOKEN.BRACKETS_CLOSE かどうかを判定する
+    - false なら、「括弧が閉じられていない」というエラーを登録する
+    - lexer を巻き戻し、null を返却する
+- 括弧、適用、括弧閉じが正しく読み込まれた場合、適用の部分を返す（括弧は抽象構文木の段階では不要である）
+
+### `<lambda_abstraction>` は、はじめに開始記号（`\`）があり…
+[parseLambdaAbstraction](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L77-L102)
+
+- トークンを一つ取り出し、TOKEN.LAMBDA（`\`） かどうかを判定する
+    - false なら、ラムダ抽象ではないので、lexer を巻き戻して null を返却する
+- トークンが TOKEN.IDENTIFIER でなくなるまで、トークンを取り出す
+    - 1 つも TOKEN.IDENTIFIER が無かった場合、「引数は最低1個必要」というエラーを登録する
+    - 1 つ以上の TOKEN.IDENTIFIER の直後が TOKEN.LAMBDA_BODY（`.`）で無かった場合、「ラムダ抽象の本体が必要」というエラーを登録する
+- ラムダ抽象の本体は parseApplication でパースする
+    - parseApplication が null を返した場合、「ラムダ抽象の本体が必要」というエラーを登録する
+- `\`、引数、`.`、本体が正しく読み込まれた場合、カリー化を行いながら抽象構文木を構築し、これを返却する
+
+### `<definition>` は、識別子（`<identifier>`）があり…
+[parseDefinition](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L104-L116)
+
+- これも基本的な流れは一緒
+- トークンを 1 つ取り出し、TOKEN.IDENTIFIER かどうかを判定する
+    - false なら 定義 ではないので lexer を巻き戻して null を返却する
+- トークンを 1 つ取り出し、TOKEN.DEF_OP（`:=`） かどうかを判定する
+    - false なら 定義 ではないので lexer を巻き戻して null を返却する
+- 定義の本体は parseApplication でパースする
+    - null が帰ってきた場合「定義の本体が必要」というエラーを登録する
+- 変数名、`:=`、本体が正しく読み込まれた場合、抽象構文機を構築してこれを返却する
+
+### `<constant>` は、次の3種がある
+- `<identifier>` ... `/^(?:[_a-zA-Z]\w*|[!$%&*+/<=>?@^|\-~]+)$/`
+- `<natural_number>` ... `/^(?:0|[1-9]\d*)$/`
+- `<string>` ... `/^(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/`
+
+[parseConstant](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L118-L125)
+
+- トークンを 1 つ取り出し、TOKEN.IDENTIFIER, TOKEN.NUMBER.NATURAL, TOKEN.STRING のいずれかを判定する
+- どれでもなければ、lexer を巻き戻して null を返却する
+
+## 抽象構文木の node
+Parser によって生成される抽象構文木は、以下の 7 種類のノードから成る
+
+- [listNode](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L131-L134)
+    - 適用の配列を保持する
+- [applicationNode](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L136-L140)
+    - 関数（left）と 引数（right）を保持し、left に right を適用する node をあらわす
+- [lambdaAbstractionNode](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L142-L146)
+    - 引数（arg）と本体（body）を保持し、カリー化されたラムダ抽象をあらわす
+- [definitionNode](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L148-L152)
+    - 変数名（name）と本体（body）を保持し、変数の定義をあらわす
+- [identifierNode](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L154-L157)
+- [naturalNumberNode](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L159-L162)
+- [stringNode](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/parser.coffee#L164-L168)
+    - それぞれの値を保持する。葉ノード。
+
+# Gravel の Interpreter
+Gravel の Interpreter は、抽象構文木を受け取り、適用可能なオブジェクト Runner を返す。
+
+```math
+interprete: AST \longrightarrow Runner
+```
+
+## 適用可能なオブジェクト Runner
+Runner は、次の 3 つのメソッドを持つ
+
+```math
+\begin{eqnarray}
+constructor:&AST \times Env &\longrightarrow& Runner\\
+toString:& Runner &\longrightarrow& String\\
+run:& Runner \times FutureEval &\longrightarrow& Runner
+\end{eqnarray}
+```
+
+- 抽象構文木と現在の環境を引数に取る constructor
+    - 実際には Interpreter が環境を保持しており、Runner のコンストラクタには Interpreter を渡す。
+- 自身の表現を返す toString
+    - 例えば NumberRunner はその数字を、LambdaAbstractionRunner はラムダ抽象の表現を返す。
+- 「将来評価されるオブジェクト」 FutureEval を受け取り、自身への引数として適用する run
+
+## 将来評価されるオブジェクト FutureEval
+FutureEval は抽象構文木と Interpreter を受け取り、get メソッドを持つオブジェクトを返す。
+get メソッドは、将来必要になった時に呼び出され、評価はその最初の一度目で行われる。
+
+```math
+\begin{eqnarray}
+constructor:&AST \times Interpreter &\longrightarrow& FutureEval\\
+get:& FutureEval &\longrightarrow& Runner\\
+\end{eqnarray}
+```
+
+## 環境 Env
+環境と Runner は 1対多で対応しており、変数の名前解決に使われる。
+
+ラムダ抽象にラムダ式が適用されると、ラムダ抽象が保持する環境から子環境を生成して ラムダ式を引数に束縛する。
+これにより、ラムダ抽象が定義された環境の変数が中で使えるようになる（レキシカルスコープ）。
+
+Gravel は CoffeeScript で実装しており、Env の親子関係は JavaScript の prototype チェーンを使って実現している（むしろこれを利用したいために CoffeeScript を選んだ）。
+その結果、煩わしい if 文や parent をたどる処理を加えること無く、child.x を見るだけで parent.x も全部探してくれるというシンプルな実装になった。
+
+→ [シンプルな実装](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/env_manager.coffee)
+
+## 評価例：`(\x y.x) 1 2`
+
+- `(\x y.x)` と 現在の環境 `global` から Runner `r1` が生成される
+- 1 と現在の interpreter から FutureEval `fe1` が生成される
+- `r1.run(fe1)` が実行される
+    - r1 に紐付けられた環境 `global` の子環境 `env1` が生成される
+    - `env1.x = 1`
+    - `(\x y.x)` の本体 `\y.x` が評価される。
+    - 評価の結果 `\y.x` は ラムダ抽象であったから、これと `env1` から Runner `r2` が生成される
+- 2 と現在の interpreter から FutureEval `fe2` が生成される
+- `r2.run(fe2)` が実行される
+    - r2 に紐付けられた環境 `env1` の子環境 `env2` が生成される
+    - `env2.y = 2`
+    - `\y.x` の本体 `x` が評価される。
+    - 評価の結果 `x` は変数であったから、現在の環境 `env2` から x が検索される
+    - env2 は x を持っていないので、 env2.__proto__.x = env1.x が検索される
+    - env1.x は 1 であったから、これと現在の環境 `env2` から Runner `r3 が生成される
+- 最終的な評価結果は `r3` であり、これを表示する際に toString が呼ばれる
+- toString は文字として "1" を返す
+
+## 標準ライブラリ
+少ないが、一応[標準ライブラリ](https://github.com/amo12937/gravel/blob/v1.0.0/src/scripts/visitor/stdlib.coffee#L27-L55)も用意している。
+
+- nil は特別な Runner を用意しており、何を適用しても必ず nil を返す。
+    - 何を適用されても自分自身を返す、というラムダ式は `Y true` という形であらわす事ができる。
+- isnil で nil だったら true ほかは false というラムダ式を作りたかったが、 `Y true` に対する `isnil` はどうしても作れなかった
+    - 仕方ないので、こちらも特別な Runner を用意し、引数が NilRunner だったら true, そうでなかったら false を返すようにしている。
+
+# Gravel コンソール
+Gravel を Web 上で実行するコンソールも作った。
+
+[Gravel コンソール](http://amo12937.github.io/gravel_web/)
+
+- help <name> で、文法などを参照することが出来る。
+    - help BNF
+        - BNF を見ることが出来る
+    - help application
+        - 適用のラムダ式を見ることが出来る
+    - help labda
+        - ラムダ抽象のラムダ式を見ることが出来る
+    - definition
+        - 定義のラムダ式を見ることが出来る
+    - defined
+        - 標準ライブラリの一覧を見ることが出来る
+
+## Gravel で階乗
+```
+> fact 5
+= 120
+```
+
+## Gravel で Hello World
+文字列を評価すると、評価値がそのまま返ってくるので、
+
+```
+> "Hello World"
+= "Hello World"
+```
+
+うん、まぁ。
+
+## Gravel で Quine
+未定義の変数はその変数名が評価値となる：
+
+```
+> Quine
+= Quine
+```
+
+はい。
+
+## Gravel で fizz buzz
+まず、余りを返す関数は作っていないのでこれを作る。
+
+```
+> % := \m n.sub m (* n (div m n))
+= OK: %
+```
+
+次に、n を受け取り、fizz か buzz か fizzbuzz か n を返す関数を作る。
+
+```
+> fb := \n. isZero (% n 15) "fizzbuzz" (isZero (% n 3) "fizz" (isZero (% n 5) "buzz" n))
+= OK: fb
+> fb 1
+= 1
+> fb 3
+= "fizz"
+> fb 5
+= "buzz"
+> fb 15
+= "fizzbuzz"
+```
+
+次に、n を受け取り 1 〜 n までの値に fizzbuzz を適用する関数を作る。これには、Y コンビネータを用いる。
+
+```
+> fizzbuzz := Y (\f r n.isZero n r (f (pair (fb n) r) (pred n))) nil
+= OK: fizzbuzz
+> fizzbuzz 16
+= \p.((p a) b)
+```
+
+しまった配列の中身を表示する仕組みを作っていなかった。
+
+```
+> a := fizzbuzz 16
+= OK: a
+> head a
+= 1
+> head (tail a)
+= 2
+> head (tail (tail a))
+= "fizz"
+> head (tail (tail (tail a)))
+= 4
+> head (tail (tail (tail (tail a))))
+= "buzz"
+...
+```
+
+こんな感じ。
+
+
+# 終わりに
+本当はコンパイラを作りたかったが、勉強不足により断念。そのうち挑戦したい。
