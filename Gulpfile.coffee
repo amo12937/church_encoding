@@ -26,10 +26,15 @@ do (sass = require("gulp-sass"), autoprefixer = require "gulp-autoprefixer") ->
       .pipe autoprefixer()
       .pipe gulp.dest "dist/styles"
 
+do ->
+  gulp.task "readme", ->
+    gulp.src "src/README.md"
+      .pipe gulp.dest "dist"
+
 do (mocha = require "gulp-mocha") ->
   require "coffee-script/register"
   gulp.task "nyan", ->
     gulp.src "spec/scripts/**/*.coffee", read: false
       .pipe mocha reporter: "nyan"
 
-gulp.task "build", gulp.series "clean", gulp.parallel "scripts", "haml", "styles"
+gulp.task "build", gulp.series "clean", gulp.parallel "scripts", "haml", "styles", "readme"
