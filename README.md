@@ -431,7 +431,8 @@ eq &:=& \lambda m\ n.and\ (leq\ m\ n)\ (geq\ m\ n)
 \end{eqnarray}
 ```
 
-## 対
+## リスト
+### 対
 次に、2つのラムダ式の「対」を定義する。対 (a, b) は、a を返す関数 first と b を返す関数 second とセットで定義される。
 
 ```math
@@ -442,7 +443,7 @@ second &:=& \lambda p.p\ false
 \end{eqnarray}
 ```
 
-## リスト
+### リスト
 対が出来れば、リストは簡単である。値とリストからリストを生成する cons, リストから先頭の値を取り出す head, 先頭以外の残りを取り出す tail はそれぞれ pair, first, second と同じである。  
 リストの終端を示す nil は、いろいろな定義があるが、ここでは英語版 wikipedia の定義に従う。nil の場合に true を返す関数 isnil も用意する。
 
@@ -455,3 +456,101 @@ nil &:=& \lambda x.true\\
 isnil &:=& \lambda list.list\ (\lambda h\ t.false)
 \end{eqnarray}
 ```
+
+### 文字列
+文字列とは、文字のリストであり、文字は数字によって添字付けられた記号である。この添字は例えば Unicode の番号であり、これをもって文字の代替とすることができるから、文字列とは結局数字のリストと考えることができる。したがって、これはラムダ式で表現可能である
+
+## 再帰
+### 不動点
+代入構文 := は便宜上使っているだけで本来のラムダ式の記法ではない。したがって、階乗を計算する次の式は無効である
+
+```math
+f := \lambda n.isZero\ n\ 1\ (mul\ n\ (f\ (pred\ n)))
+```
+
+内部の f は、自由変数であり、これでは再帰関数を表現したことにならない。  
+ラムダ式を使って再帰を実現するために、式を次のように書き換える。
+
+```math
+g := \lambda f\ n.isZero\ n\ 1\ (mul\ n\ (f\ (pred\ n)))
+```
+
+g にあるラムダ式 F を適用して、再帰的に階乗の計算を行いたい。
+
+```math
+\begin{eqnarray}
+g\ F &:=& (\lambda f\ n.isZero\ n\ 1\ (mul\ n\ (f\ (pred\ n))))\ F\\
+&=& \lambda\ n.isZero\ n\ 1\ (mul\ n\ (F\ (pred\ n)))
+\end{eqnarray}
+```
+
+F が再び λn.isZero n 1 (mul n(F (pred n))) という形をしていれば、これに pred n を渡すことで階乗の計算が可能となる。  
+したがって、再帰を行うには次を満たすラムダ式 F を見つければ良いということになる
+
+```math
+F = g\ F
+```
+
+この F を g の不動点と呼ぶ
+
+### Y コンビネータ
+任意の関数 g の不動点を与えるラムダ式として、以下の式が知られている
+
+```math
+Y := \lambda f.(\lambda x.f\ (x\ x))\ (\lambda x.f\ (x\ x))
+```
+
+F = Y g として、これを評価してみる
+
+```math
+\begin{eqnarray}
+F = Y\ g &=& (\lambda f.(\lambda x.f\ (x\ x))\ (\lambda x.f\ (x\ x)))\ g\\
+&=& ((\lambda x.f\ (x\ x))\ (\lambda x.f\ (x\ x)))[f := g]\\
+&=& (\lambda x.g\ (x\ x))\ (\lambda x.g\ (x\ x))\\
+&=& (g\ (x\ x))[x := (\lambda x.g\ (x\ x))]\\
+&=& g\ ((\lambda x.g\ (x\ x))\ (\lambda x.g\ (x\ x)))\\
+&=& g\ (\lambda f.(\lambda x.f\ (x\ x))\ (\lambda x.f\ (x\ x)))[f := g]\\
+&=& g\ (Y\ g) = g\ F
+\end{eqnarray}
+```
+
+したがって、F = Y g は g の不動点である。
+
+Y コンビネータが実際に計算される様子を追ってみよう。最初と最後だけ少し丁寧に書いた。
+
+```math
+\begin{eqnarray}
+fact &:=& \lambda f\ n.isZero\ n\ 1\ (mul\ n\ (f\ (pred\ n)))\\
+Y\ fact\ 5 &=& (\lambda f.(\lambda x.f\ (x\ x))\ (\lambda x.f\ (x\ x)))\ fact\ 5\\
+&=&((\lambda x.f\ (x\ x))\ (\lambda x.f\ (x\ x)))[f := fact]\ 5\\
+&=&(\lambda x.fact\ (x\ x))\ (\lambda x.fact\ (x\ x))\ 5\\
+&=&fact\ ((\lambda x.fact\ (x\ x))\ (\lambda x.fact\ (x\ x)))\ 5\\
+&=&fact\ (Y\ fact)\ 5\\
+&=&(\lambda f\ n.isZero\ n\ 1\ (mul\ n\ (f\ (pred\ n))))\ (Y\ fact)\ 5\\
+&=&(\lambda n.isZero\ n\ 1\ (mul\ n\ (Y\ fact\ (pred\ n))))\ 5\\
+&=&isZero\ 5\ 1\ (mul\ 5\ (Y\ fact\ (pred\ 5)))\\
+&=&mul\ 5\ (Y\ fact\ (pred\ 5))\\
+&=&mul\ 5\ (Y\ fact\ 4)\\
+&=&mul\ 5\ (mul\ 4\ (Y\ fact\ 3))\\
+&=&mul\ 5\ (mul\ 4\ (mul\ 3\ (Y\ fact\ 2)))\\
+&=&mul\ 5\ (mul\ 4\ (mul\ 3\ (mul\ 2\ (Y\ fact\ 1))))\\
+&=&mul\ 5\ (mul\ 4\ (mul\ 3\ (mul\ 2\ (mul\ 1\ (Y\ fact\ 0)))))\\
+&=&mul\ 5\ (mul\ 4\ (mul\ 3\ (mul\ 2\ (mul\ 1\ ((\lambda f.(\lambda x.f\ (x\ x))\ (\lambda x.f\ (x\ x)))\ fact\ 0)))))\\
+&=&mul\ 5\ (mul\ 4\ (mul\ 3\ (mul\ 2\ (mul\ 1\ ((\lambda x.fact\ (x\ x))\ (\lambda x.fact\ (x\ x))\ 0))))\\
+&=&mul\ 5\ (mul\ 4\ (mul\ 3\ (mul\ 2\ (mul\ 1\ (fact\ (Y\ fact)\ 0)))))\\
+&=&mul\ 5\ (mul\ 4\ (mul\ 3\ (mul\ 2\ (mul\ 1\ ((\lambda f\ n.isZero\ n\ 1\ (mul\ n\ (f\ (pred\ n))))\ (Y\ fact)\ 0)))))\\
+&=&mul\ 5\ (mul\ 4\ (mul\ 3\ (mul\ 2\ (mul\ 1\ ((\lambda n.isZero\ n\ 1\ (mul\ n\ (Y\ fact\ (pred\ n))))\ 0)))))\\
+&=&mul\ 5\ (mul\ 4\ (mul\ 3\ (mul\ 2\ (mul\ 1\ (isZero\ 0\ 1\ (mul\ 0\ (Y\ fact\ (pred\ 0))))))))\\
+&=&mul\ 5\ (mul\ 4\ (mul\ 3\ (mul\ 2\ (mul\ 1\ 1))))\\
+&=&mul\ 5\ (mul\ 4\ (mul\ 3\ (mul\ 2\ 1)))\\
+&=&mul\ 5\ (mul\ 4\ (mul\ 3\ 2))\\
+&=&mul\ 5\ (mul\ 4\ 6)\\
+&=&mul\ 5\ 24\\
+&=&120
+\end{eqnarray}
+```
+
+# 自作言語 Gravel
+# Gravel のトークナイザー
+# Gravel のパーサー
+# Gravel のインタープリター
